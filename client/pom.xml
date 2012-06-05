@@ -5,7 +5,7 @@
     <parent>
         <artifactId>parent</artifactId>
         <groupId>com.objectcode.lostsocks</groupId>
-        <version>0.1</version>
+        <version>0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>client</artifactId>
@@ -19,6 +19,10 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.jnlp</groupId>
+            <artifactId>jnlp-api</artifactId>
         </dependency>
     </dependencies>
 </project>
