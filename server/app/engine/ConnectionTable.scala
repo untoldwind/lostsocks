@@ -16,4 +16,6 @@ object ConnectionTable {
   def isEmpty = table.isEmpty
 
   def size = table.size
+
+  def foreach[U](f:((String, ExtendedConnection)) => U) = table.foreach[U](f)
 }

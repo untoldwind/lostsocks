@@ -21,7 +21,7 @@ import com.objectcode.lostsocks.common.net.{Connection, DataPacket}
 import engine.{ConnectionTable, ExtendedConnection}
 
 object Connections extends Controller {
-  val serverTimeout = 600
+  val serverTimeout = 120
   def index = Action {
     Ok("Bla")
   }
@@ -34,8 +34,14 @@ object Connections extends Controller {
       }
   }
 
-  def update(id: String) = Action {
-    Ok("Bla")
+  def update(id: String) = Action(javaDataPaket) {
+    implicit request =>
+      request.body.`type` match {
+        case Constants.CONNECTION_PING => pingRequest
+        case Constants.CONNECTION_PONG => pongRequest
+        case Constants.CONNECTION_REQUEST => connectionRequest
+        case Constants.CONNECTION_DESTROY => connectionDestroy
+      }
   }
 
   def versionRequest(implicit request: Request[DataPacket]) = {
@@ -103,10 +109,10 @@ object Connections extends Controller {
         if (userTimeout == 0) extConn.timeout = serverTimeout
         else extConn.timeout = min(userTimeout, serverTimeout)
       }
-//      extConn.authorizedTime = userInfo.authorizedTime;
+      extConn.authorizedTime = 0
 
       // Add this to the ConnectionTable
-      ConnectionTable.put(id_conn, extConn);
+      ConnectionTable.put(id_conn, extConn)
 
       // Build the response
       output.`type` = Constants.CONNECTION_CREATE_OK;
@@ -116,6 +122,116 @@ object Connections extends Controller {
       val resp = "" + conn.getSocket().getInetAddress().getHostAddress() + ":" + conn.getSocket().getPort()
       output.tab = resp.getBytes()
     }
+    Ok(output)
+  }
+
+  def connectionRequest(implicit request: Request[DataPacket]) = {
+    val input = request.body
+    var output = new DataPacket()
+    val id_conn = input.id
+    output.id = input.id
+
+    val extConn = ConnectionTable.get(id_conn)
+    if (!extConn.isDefined ) {
+      Logger.warn("Connection not found : " + id_conn)
+
+      // Connection not found
+      output.`type` = Constants.CONNECTION_NOT_FOUND
+      output.tab = Constants.TAB_EMPTY
+    }
+    else
+    {
+      val lastAccessDate = extConn.get.lastAccessDate
+      extConn.get.lastAccessDate = new java.util.Date()
+      val conn = extConn.get.conn
+
+      // Add the sended bytes
+      extConn.get.uploadedBytes += input.tab.size
+
+      // write the bytes
+      conn.write(input.tab)
+
+      // Update the upload speed
+      val div = 1 + extConn.get.lastAccessDate.getTime - lastAccessDate.getTime
+      extConn.get.currentUploadSpeed = input.tab.size.toDouble / div
+
+      // Build the response
+      output.`type` = Constants.CONNECTION_RESPONSE
+      val buf = conn.read()
+      if (buf == null)
+      {
+        output.tab = Constants.TAB_EMPTY
+        output.isConnClosed = true
+
+        // Remove the connection from the ConnectionTable
+        ConnectionTable.remove(id_conn)
+      }
+      else
+      {
+        // Add the received bytes
+        extConn.get.downloadedBytes += buf.size
+
+        // Update the download speed
+        val div = 1 + extConn.get.lastAccessDate.getTime - lastAccessDate.getTime
+        extConn.get.currentDownloadSpeed = buf.size.toDouble / div;
+
+        // Prepare the output
+        output.tab = buf
+      }
+    }
+    Ok(output)
+  }
+
+  def connectionDestroy(implicit request: Request[DataPacket]) = {
+    val input = request.body
+    var output = new DataPacket()
+    val id_conn = input.id
+    output.id = input.id
+
+    Logger.info("Connection destroy : " + id_conn)
+
+    val extConn = ConnectionTable.get(id_conn)
+
+    if (!extConn.isDefined)
+    {
+      Logger.info("Connection already destroyed by timeout : " + id_conn)
+
+      // Connection not found
+      output.`type` = Constants.CONNECTION_DESTROY_OK
+    }
+    else
+    {
+      extConn.get.lastAccessDate = new java.util.Date()
+      val conn = extConn.get.conn
+
+      // Close it
+      conn.disconnect()
+
+      // Remove it from the ConnectionTable
+      ConnectionTable.remove(id_conn)
+
+      // Build the response
+      output.`type` = Constants.CONNECTION_DESTROY_OK
+    }
+
+    Ok(output)
+  }
+
+  def pingRequest(implicit request: Request[DataPacket]) = {
+    val input = request.body
+    var output = new DataPacket()
+    output.`type` = Constants.CONNECTION_PONG
+    output.id = input.id
+    output.tab = input.tab
+    Ok(output)
+  }
+
+  def pongRequest(implicit request: Request[DataPacket]) = {
+    val input = request.body
+    var output = new DataPacket()
+    output.`type` = Constants.CONNECTION_PONG_RECEIVED
+    output.id = input.id
+    output.tab = input.tab
     Ok(output)
   }
 
@@ -170,6 +286,7 @@ object Connections extends Controller {
     val zos = new GZIPOutputStream(bos)
     val oos = new ObjectOutputStream(zos)
     oos.writeObject(dataPaket)
+    oos.flush()
     oos.close()
     bos.toByteArray
   })
