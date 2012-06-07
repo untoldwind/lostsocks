@@ -28,6 +28,7 @@ import com.objectcode.lostsocks.common.net.DataPacket;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpPost;
@@ -65,7 +66,7 @@ public class ThreadCommunication extends Thread {
     /**
      * Constructor for the ThreadCommunication object
      *
-     * @param source Description of the Parameter
+     * @param source        Description of the Parameter
      * @param configuration Description of the Parameter
      */
     public ThreadCommunication(Connection source, IConfiguration configuration) {
@@ -134,9 +135,9 @@ public class ThreadCommunication extends Thread {
     /**
      * Constructor for the ThreadCommunication object
      *
-     * @param source Description of the Parameter
+     * @param source         Description of the Parameter
      * @param destinationUri Description of the Parameter
-     * @param configuration Description of the Parameter
+     * @param configuration  Description of the Parameter
      */
     public ThreadCommunication(Connection source, String destinationUri, IConfiguration configuration) {
 
@@ -306,13 +307,37 @@ public class ThreadCommunication extends Thread {
         }
     }
 
+    public static CompressedPacket sendHttpMessage(IConfiguration config, RequestType requestType, CompressedPacket input) {
+        HttpClient client = config.createHttpClient();
+
+        HttpPost request = new HttpPost(config.getTargetPath() + requestType.getUri());
+
+        request.setHeader("Content-Type", "application/x-compressed-bytes");
+        request.setEntity(input.toEntity());
+
+        try {
+            HttpResponse response = client.execute(config.getTargetHost(), request);
+
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                log.error("Failed request " + request + " Status: " + response.getStatusLine());
+
+                return null;
+            }
+
+            return CompressedPacket.fromEntity(response.getEntity());
+        } catch (IOException e) {
+            log.error("IOException " + e, e);
+            return null;
+        }
+    }
+
     /**
      * Description of the Method
      *
      * @param config Description of the Parameter
      * @param source Description of the Parameter
      * @return Description of the Return Value
-     * @throws IOException Description of the Exception
+     * @throws IOException            Description of the Exception
      * @throws ClassNotFoundException Description of the Exception
      */
     public static DataPacket sendHttpMessage(IConfiguration config, DataPacket source)

@@ -27,7 +27,7 @@ package com.objectcode.lostsocks.common;
 public class Constants
 {
   // Class constants
-  public static final String APPLICATION_VERSION = "1.0.1";
+  public static final String APPLICATION_VERSION = "1.0.2";
   public static final String APPLICATION_NAME = "Socks via HTTP";
   public static final String AUTHOR_NAME = "Florent CUETO & Sebastien LEBRETON";
   public static final String AUTHOR_EMAIL = "socksviahttp@cqs.dyndns.org";

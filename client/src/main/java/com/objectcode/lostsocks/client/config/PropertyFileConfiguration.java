@@ -126,6 +126,8 @@ public class PropertyFileConfiguration implements IConfiguration {
             } else {
                 m_url = null;
             }
+            m_targetHost = null;
+            m_targetPath = null;
         } catch (Exception e) {
             log.fatal("Exception", e);
         }
@@ -386,17 +388,21 @@ public class PropertyFileConfiguration implements IConfiguration {
     }
 
     public HttpHost getTargetHost() {
-        if ( m_targetHost == null ) {
+        if (m_targetHost == null) {
             m_targetHost = new HttpHost(m_url.getHost(), m_url.getPort(), m_url.getProtocol());
             m_targetPath = m_url.getPath();
+            if (m_targetPath.endsWith("/"))
+                m_targetPath = m_targetPath.substring(0, m_targetPath.length() - 1);
         }
         return m_targetHost;
     }
 
     public String getTargetPath() {
-        if ( m_targetPath == null ) {
+        if (m_targetPath == null) {
             m_targetHost = new HttpHost(m_url.getHost(), m_url.getPort(), m_url.getProtocol());
             m_targetPath = m_url.getPath();
+            if (m_targetPath.endsWith("/"))
+                m_targetPath = m_targetPath.substring(0, m_targetPath.length() - 1);
         }
         return m_targetPath;
     }

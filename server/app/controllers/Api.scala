@@ -18,7 +18,7 @@ object Api extends Controller with Secured with CompressedPacketFormat {
     implicit request =>
       if(SUPPORTED_CLIENT_VERSIONS.contains(request.body.asString)) {
         Logger.info("Version check - Version supported : " + request.body.asString)
-        Ok(CompressedPacket("Version supported", true))
+        Ok(CompressedPacket(request.body.data, true))
       } else {
         Logger.info("Version check - Version no more supported : " + request.body.asString)
         NotAcceptable("Version not supported")

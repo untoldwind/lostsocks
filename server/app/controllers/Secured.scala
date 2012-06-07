@@ -63,7 +63,6 @@ trait Secured {
               credentials.split(":") match {
                 case Array(username, password) =>
                   val userOpt:Option[(UserInfo, String)] = Cache.getOrElse("basic-" + username) {
-                    println(">>>> Getty: " + username)
                     User.findByUsername(username).map { user => (UserInfo(user.id, user.username, user.roleNames), user.hashedPassword) }
                   }
                   userOpt.flatMap { case (userInfo, hashedPassword) =>
