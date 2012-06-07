@@ -25,7 +25,6 @@ import com.objectcode.lostsocks.client.net.GenericSocksHandler;
 import com.objectcode.lostsocks.common.Constants;
 import com.objectcode.lostsocks.common.net.Connection;
 import com.objectcode.lostsocks.common.net.DataPacket;
-import com.objectcode.lostsocks.common.util.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
@@ -119,7 +118,7 @@ public class ThreadCommunication extends Thread {
 
             // Send the response packet to the socks client
             GenericSocksHandler replyPacket = socksHandler;
-            String[] resp = StringUtils.stringSplit(serverInfoMessage, ":", false);
+            String[] resp = serverInfoMessage.split(":");
             replyPacket.setDestIP(resp[0]);
             replyPacket.setDestPort(Integer.parseInt(resp[1]));
             this.source.write(replyPacket.buildResponse(GenericSocksHandler.RESPONSE_SUCCESS));

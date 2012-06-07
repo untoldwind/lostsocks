@@ -26,7 +26,6 @@ package com.objectcode.lostsocks.client.net;
 
 import com.objectcode.lostsocks.client.config.IConfiguration;
 import com.objectcode.lostsocks.common.net.Connection;
-import com.objectcode.lostsocks.common.util.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -79,7 +78,7 @@ public class Socks4Handler extends GenericSocksHandler
   {
     byte[] ret = new byte[8];
 
-    String[] bytes = StringUtils.stringSplit(destIP, ".", false);
+    String[] bytes = destIP.split("\\.");
     ret[0] = (byte)SOCKS4_REPLY_VERSION;
     ret[1] = (byte)(responseType == RESPONSE_SUCCESS ? SOCKS4_OK : SOCKS4_KO);
     ret[2] = i2b(destPort / 256);

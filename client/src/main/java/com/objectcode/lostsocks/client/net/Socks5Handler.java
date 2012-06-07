@@ -26,7 +26,6 @@ package com.objectcode.lostsocks.client.net;
 
 import com.objectcode.lostsocks.client.config.IConfiguration;
 import com.objectcode.lostsocks.common.net.Connection;
-import com.objectcode.lostsocks.common.util.StringUtils;
 
 public class Socks5Handler extends GenericSocksHandler
 {
@@ -105,7 +104,7 @@ public class Socks5Handler extends GenericSocksHandler
   {
     byte[] ret = new byte[10];
 
-    String[] bytes = StringUtils.stringSplit(destIP, ".", false);
+    String[] bytes = destIP.split("\\.");
     ret[0] = 5;
     ret[1] = (byte)(responseType == RESPONSE_SUCCESS ? SOCKS5_OK : SOCKS5_KO);
     ret[2] = 0;
