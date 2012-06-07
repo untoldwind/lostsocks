@@ -20,13 +20,13 @@ import models.IdGenerator
 import engine.{ConnectionTable, ExtendedConnection}
 import com.objectcode.lostsocks.common.net.{DataPacket, Connection}
 
-object Connections extends Controller {
+object Connections extends Controller with Secured {
   val serverTimeout = 120
   def index = Action {
     Ok("Bla")
   }
 
-  def create = Action(javaDataPaket) {
+  def create = BasicAuthenticated(javaDataPaket) {
     implicit request =>
       request.body.`type` match {
         case Constants.CONNECTION_VERSION_REQUEST => versionRequest
@@ -34,7 +34,7 @@ object Connections extends Controller {
       }
   }
 
-  def update(id: String) = Action(javaDataPaket) {
+  def update(id: String) = BasicAuthenticated(javaDataPaket) {
     implicit request =>
       request.body.`type` match {
         case Constants.CONNECTION_PING => pingRequest

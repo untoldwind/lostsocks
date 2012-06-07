@@ -64,6 +64,10 @@ object User {
     AppDb.users.lookup(userId)
   }
 
+  def findByUsername(username: String) : Option[User] = inTransaction {
+    AppDb.users.where(u => u.username === username).headOption
+  }
+
   def authenticate(username: String, password: String): Option[User] = inTransaction {
     val user = AppDb.users.where(u => u.username === username).headOption
 
