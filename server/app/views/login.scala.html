@@ -1,0 +1,22 @@
+@(form: Form[User])
+
+@main("Login") {
+	@helper.form(routes.Login.authenticate) {
+		<fieldset>
+			@helper.inputText(
+				form("username"),
+				'_label -> "Username",
+				'_error -> form.globalError
+			)
+			
+			@helper.inputPassword(
+				form("password"),
+				'_label -> "Password"
+			)
+		</fieldset>
+
+        <div class="actions">
+            <input type="submit" class="btn primary" value="Login">
+        </div>
+	}
+}
