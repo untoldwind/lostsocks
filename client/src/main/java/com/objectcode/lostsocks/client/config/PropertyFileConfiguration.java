@@ -11,6 +11,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.params.AuthPolicy;
 import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.PoolingClientConnectionManager;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -393,7 +394,8 @@ public class PropertyFileConfiguration implements IConfiguration {
 
         if (m_httpClient == null) {
             synchronized (this) {
-                DefaultHttpClient httpClient = new DefaultHttpClient();
+                PoolingClientConnectionManager clientConnectionManager = new PoolingClientConnectionManager();
+                DefaultHttpClient httpClient = new DefaultHttpClient(clientConnectionManager);
 
                 httpClient.getCredentialsProvider().setCredentials(
                         new AuthScope(getTargetHost().getHostName(), getTargetHost().getPort()),

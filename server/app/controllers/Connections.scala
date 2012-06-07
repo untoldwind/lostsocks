@@ -17,8 +17,8 @@ import java.util.zip.{GZIPOutputStream, GZIPInputStream}
 import java.net.InetAddress
 import com.objectcode.lostsocks.common.util.StringUtils
 import models.IdGenerator
-import com.objectcode.lostsocks.common.net.{Connection, DataPacket}
 import engine.{ConnectionTable, ExtendedConnection}
+import com.objectcode.lostsocks.common.net.{DataPacket, Connection}
 
 object Connections extends Controller {
   val serverTimeout = 120
@@ -163,6 +163,7 @@ object Connections extends Controller {
         output.tab = Constants.TAB_EMPTY
         output.isConnClosed = true
 
+        Logger.info("Connection closed: " + id_conn)
         // Remove the connection from the ConnectionTable
         ConnectionTable.remove(id_conn)
       }

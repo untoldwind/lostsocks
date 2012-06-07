@@ -108,6 +108,7 @@ public class ThreadCommunication extends Thread {
             id_conn = response.id;
             serverInfoMessage = new String(response.tab);
         } catch (Exception e) {
+            e.printStackTrace();
             log.error("<CLIENT> Cannot initiate a dialog with SERVER. Exception : " + e);
             return;
         }
@@ -362,6 +363,7 @@ public class ThreadCommunication extends Thread {
 
             // Close the stream
             ois.close();
+            is.close();
 
             // Return the value
             return (ret);

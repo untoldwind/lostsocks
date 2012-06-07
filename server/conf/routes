@@ -9,4 +9,5 @@ GET     /                           controllers.Application.index
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
 
 POST   /connections                 controllers.Connections.create
+POST   /connections/:id             controllers.Connections.update(id:String)
 PUT    /connections/:id             controllers.Connections.update(id:String)
