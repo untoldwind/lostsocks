@@ -1,6 +1,5 @@
 package models
 
-import models.UserInfo
 import collection.mutable.{SynchronizedMap, HashMap}
 import engine.ExtendedConnection
 

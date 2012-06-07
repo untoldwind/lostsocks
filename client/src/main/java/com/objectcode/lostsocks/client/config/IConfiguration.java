@@ -76,4 +76,6 @@ public interface IConfiguration {
     public HttpClient createHttpClient();
 
     public HttpHost getTargetHost();
+
+    public String getTargetPath();
 }

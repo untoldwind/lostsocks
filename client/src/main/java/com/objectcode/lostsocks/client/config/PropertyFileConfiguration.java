@@ -1,6 +1,6 @@
 package com.objectcode.lostsocks.client.config;
 
-import com.objectcode.lostsocks.common.util.PropertiesHelper;
+import com.objectcode.lostsocks.client.utils.PropertiesHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
@@ -85,6 +85,8 @@ public class PropertyFileConfiguration implements IConfiguration {
     private HttpClient m_httpClient;
 
     private HttpHost m_targetHost;
+
+    private String m_targetPath;
 
     /**
      * Constructor for the PropertyFileConfiguration object
@@ -386,8 +388,17 @@ public class PropertyFileConfiguration implements IConfiguration {
     public HttpHost getTargetHost() {
         if ( m_targetHost == null ) {
             m_targetHost = new HttpHost(m_url.getHost(), m_url.getPort(), m_url.getProtocol());
+            m_targetPath = m_url.getPath();
         }
         return m_targetHost;
+    }
+
+    public String getTargetPath() {
+        if ( m_targetPath == null ) {
+            m_targetHost = new HttpHost(m_url.getHost(), m_url.getPort(), m_url.getProtocol());
+            m_targetPath = m_url.getPath();
+        }
+        return m_targetPath;
     }
 
     public HttpClient createHttpClient() {

@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // Author :       Florent CUETO  & Sebastien LEBRETON <socksviahttp@cqs.dyndns.org>
 // Description :  Class to read a .properties file
 
-package com.objectcode.lostsocks.common.util;
+package com.objectcode.lostsocks.client.utils;
 
 import java.util.*;
 

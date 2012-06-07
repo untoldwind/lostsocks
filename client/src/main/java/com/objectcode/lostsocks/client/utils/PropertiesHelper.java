@@ -1,4 +1,4 @@
-package com.objectcode.lostsocks.common.util;
+package com.objectcode.lostsocks.client.utils;
 
 import java.util.Properties;
 import java.util.StringTokenizer;
