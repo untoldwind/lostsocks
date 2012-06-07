@@ -1,0 +1,27 @@
+@(users:Seq[User])(implicit request:AuthenticatedRequest[_])
+
+@authenticated("Users") {
+<h1>User</h1>
+
+<table>
+    <tr>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Firstname</th>
+        <th>Lastname</th>
+    </tr>
+    @users.map { user =>
+        <tr>
+            <td>@user.username</td>
+            <td>@user.email</td>
+            <td>@user.firstname</td>
+            <td>@user.lastname</td>
+            <td><a href="@controllers.admin.routes.Users.edit(user.id)">Edit</a></td>
+        </tr>
+    }
+</table>
+<div>
+    <a href="@controllers.admin.routes.Users.add">Add User</a>
+</div>
+}
+

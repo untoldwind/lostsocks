@@ -1,0 +1,6 @@
+@(form:Form[User])(implicit request:AuthenticatedRequest[_])
+
+@authenticated("Add User") {
+<h1>Add User</h1>
+@_form(form, controllers.admin.routes.Users.create, "Create")
+}

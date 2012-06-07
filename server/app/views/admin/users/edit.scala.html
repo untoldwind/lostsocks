@@ -1,0 +1,6 @@
+@(user:User, form:Form[User])(implicit request:AuthenticatedRequest[_])
+
+@authenticated("Edit User") {
+<h1>Edit User</h1>
+@_form(form, controllers.admin.routes.Users.update(user.id), "Update")
+}

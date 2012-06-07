@@ -9,7 +9,7 @@
 			<ul>
 				<li><a href="@routes.Dashboard.index">Dashboard</a></li>
                 @if(request.user.canAdmin) {
-                    <li>Admin</li>
+                    <li><a href="@controllers.admin.routes.Users.index">Admin Users</a></li>
                 }
             </ul>
 		</div>

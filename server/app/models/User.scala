@@ -14,7 +14,7 @@ import play.api.libs.json.JsString
 
 class User(
   val id: Long,
-  val username: String,
+  var username: String,
   var email: String,
   var firstname: Option[String],
   var lastname: Option[String],

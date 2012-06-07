@@ -34,4 +34,14 @@ trait Secured {
   def Authenticated(f: AuthenticatedRequest[AnyContent] => Result): Action[AnyContent] =
     Authenticated(parse.anyContent)(f)
 
+  def AuthenticatedAdmin[A](p: BodyParser[A])(f: AuthenticatedRequest[A] => Result) =
+    Action(p) {
+      implicit request =>
+        getUserInfo.map {
+          user => if(user.canAdmin) f(AuthenticatedRequest(user, request)) else Unauthorized("Unauthorized")
+        }.getOrElse(onUnauthorized)
+    }
+
+  def AuthenticatedAdmin[A](f: AuthenticatedRequest[AnyContent] => Result): Action[AnyContent] =
+    AuthenticatedAdmin(parse.anyContent)(f)
 }

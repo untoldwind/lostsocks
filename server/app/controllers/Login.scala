@@ -28,25 +28,6 @@ object Login extends Controller {
       u: User => Some(u)
     }))
 
-  val registerForm = Form(
-    mapping(
-      "username" -> text(minLength = 4),
-      "email" -> email,
-      "firstname" -> optional(text),
-      "lastname" -> optional(text),
-
-      "password" -> tuple(
-        "main" -> text(minLength = 6),
-        "confirm" -> text).verifying(
-        "Passwords don't match",
-        passwords => passwords._1 ==
-          passwords._2)) {
-      (username, email, firstname, lastname, passwords) => User(username, email, firstname,
-        lastname, passwords._1)
-    } {
-      user => Some(user.username, user.email, user.firstname, user.lastname, ("", ""))
-    })
-
   def index = Action {
     Ok(views.html.login.index(loginForm))
   }
@@ -63,5 +44,5 @@ object Login extends Controller {
   }
 
   private def redirectAuthenticated(user: User) = Redirect(routes.Dashboard.index)
-    .withSession("userId" -> user.id.toString, "username" -> user.username, "roles" -> user.roleNames.reduceLeft(_ + ";" + _))
+    .withSession("userId" -> user.id.toString, "username" -> user.username, "roles" -> user.roleNames.mkString(";"))
 }

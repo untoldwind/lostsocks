@@ -20,6 +20,12 @@ GET     /profile/password/edit      controllers.UserProfile.changePassword
 
 GET     /dashboard                  controllers.Dashboard.index
 
+GET     /admin/users                controllers.admin.Users.index
+GET     /admin/users/new            controllers.admin.Users.add
+POST    /admin/users                controllers.admin.Users.create
+GET     /admin/users/:id/edit       controllers.admin.Users.edit(id:Long)
+POST    /admin/users/:id            controllers.admin.Users.update(id:Long)
+
 POST    /connections                controllers.Connections.create
 POST    /connections/:id            controllers.Connections.update(id:String)
 PUT     /connections/:id            controllers.Connections.update(id:String)

@@ -1,0 +1,43 @@
+@(form:Form[User], call:Call, action:String)
+
+@helper.form(call) {
+<fieldset>
+    @helper.inputText(
+    form("username"),
+    '_label -> "Username",
+    '_help -> "At least 4 characters",
+    '_error -> form.globalError
+    )
+
+    @helper.inputText(
+    form("email"),
+    '_label -> "Email",
+    '_help -> "A valid email address"
+    )
+
+    @helper.inputText(
+    form("firstname"),
+    '_label -> "First name"
+    )
+
+    @helper.inputText(
+    form("lastname"),
+    '_label -> "Last name"
+    )
+
+    @helper.inputPassword(
+    form("password.main"),
+    '_label -> "Password",
+    '_help -> "At least 6 characters")
+
+
+    @helper.inputPassword(
+    form("password.confirm"),
+    '_label -> "Password (confirm)",
+    '_help -> "Confirm your password")
+</fieldset>
+
+<div class="actions">
+    <input type="submit" class="btn primary" value="@action">
+</div>
+}
