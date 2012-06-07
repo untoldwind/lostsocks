@@ -1,0 +1,28 @@
+@(form:Form[User])(implicit request:AuthenticatedRequest[_])
+
+@authenticated("Edit Profile") {
+	@helper.form(routes.UserProfile.update) {
+		<fieldset>
+			@helper.inputText(
+				form("email"), 
+				'_label -> "Email",
+				'_help -> "Valid email address",
+				'_error -> form.globalError
+			)
+
+			@helper.inputText(
+				form("firstname"), 
+				'_label -> "First name"
+			)
+
+			@helper.inputText(
+				form("lastname"), 
+				'_label -> "Last name"
+			)
+		</fieldset>
+		
+		<div class="actions">
+			<input type="submit" class="btn primary" value="Update">
+		</div>
+	}
+}

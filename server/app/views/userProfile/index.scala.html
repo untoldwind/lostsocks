@@ -1,0 +1,10 @@
+@(user:User)(implicit request:AuthenticatedRequest[_])
+
+@authenticated("User profile") {
+<div>
+	<a href="@routes.UserProfile.edit">Edit Profile</a>
+</div>
+<div>
+	<a href="@routes.UserProfile.changePassword">Change Password</a>
+</div>
+}

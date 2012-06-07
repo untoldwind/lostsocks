@@ -48,13 +48,13 @@ object Login extends Controller {
     })
 
   def index = Action {
-    Ok(views.html.login(loginForm))
+    Ok(views.html.login.index(loginForm))
   }
 
   def authenticate = Action {
     implicit request =>
       loginForm.bindFromRequest.fold(
-        formWithErrors => BadRequest(views.html.login(formWithErrors)),
+        formWithErrors => BadRequest(views.html.login.index(formWithErrors)),
         user => redirectAuthenticated(user))
   }
 
@@ -62,6 +62,6 @@ object Login extends Controller {
     Redirect(routes.Application.index).withNewSession
   }
 
-  private def redirectAuthenticated(user: User) = Redirect(routes.Application.index)
+  private def redirectAuthenticated(user: User) = Redirect(routes.Dashboard.index)
     .withSession("userId" -> user.id.toString, "username" -> user.username)
 }

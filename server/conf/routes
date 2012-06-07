@@ -10,6 +10,15 @@ GET     /assets/*file               controllers.Assets.at(path="/public", file)
 
 GET     /login                      controllers.Login.index
 POST    /login                      controllers.Login.authenticate
+GET     /logout                     controllers.Login.logout
+
+GET     /profile                    controllers.UserProfile.index
+POST    /profile                    controllers.UserProfile.update
+GET     /profile/edit               controllers.UserProfile.edit
+POST    /profile/password           controllers.UserProfile.updatePassword
+GET     /profile/password/edit      controllers.UserProfile.changePassword
+
+GET     /dashboard                  controllers.Dashboard.index
 
 POST    /connections                controllers.Connections.create
 POST    /connections/:id            controllers.Connections.update(id:String)

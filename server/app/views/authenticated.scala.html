@@ -1,0 +1,26 @@
+@(title: String, additionalScripts: Seq[String] = Seq.empty)(content: Html)(implicit request:AuthenticatedRequest[_])
+
+@if(request.ajax) {
+	@content
+} else {
+	@main(title, additionalScripts) {
+	<div id="page-header">
+		<div id="page-main-menu">	
+			<ul>
+				<li><a href="@routes.Dashboard.index">Dashboard</a></li>
+			</ul>
+		</div>
+		<div id="page-auth-panel">
+			<a href="@routes.UserProfile.index">@request.user.username</a> 
+			<div class="actions">
+				<a href="@routes.Login.logout">Logout</a>
+			</div>
+		</div>
+	</div>
+
+	    
+	<div id="page-content">
+	@content
+	</div>   
+	}
+}

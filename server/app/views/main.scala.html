@@ -1,4 +1,4 @@
-@(title: String)(content: Html)
+@(title: String, additionalScripts: Seq[String] = Seq.empty)(content: Html)
 
 <!DOCTYPE html>
 
@@ -8,6 +8,9 @@
         <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
         <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
         <script src="@routes.Assets.at("javascripts/jquery-1.7.1.min.js")" type="text/javascript"></script>
+        @additionalScripts.map { script =>
+        <script src="@routes.Assets.at("javascripts/" + script)" type="text/javascript"></script>
+        }
     </head>
     <body>
         @content
