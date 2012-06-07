@@ -34,6 +34,10 @@ class User(
     hashedPassword = PasswordEncoder.encrypt(newPassword)
   }
 
+  def roleNames = inTransaction {
+    this.roles.map(r => r.name).toSeq
+  }
+
   def save = inTransaction {
     AppDb.users.insertOrUpdate(this)
   }

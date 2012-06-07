@@ -13,15 +13,22 @@ trait Secured {
   self: Controller =>
 
   protected def getUserInfo(implicit request: RequestHeader) =
-    request.session.get("userId").flatMap { userId => request.session.get("username").map { username => UserInfo(userId.toLong, username) } }
+    request.session.get("userId").flatMap {
+      userId => request.session.get("username").flatMap {
+        username => request.session.get("roles").map {
+          roles => UserInfo(userId.toLong, username, roles.split(";"))
+        }
+      }
+    }
 
   private def onUnauthorized(implicit request: RequestHeader) = Results.Redirect(routes.Login.index)
 
   def Authenticated[A](p: BodyParser[A])(f: AuthenticatedRequest[A] => Result) =
-    Action(p) { implicit request =>
-      getUserInfo.map { user =>
-        f(AuthenticatedRequest(user, request))
-      }.getOrElse(onUnauthorized)
+    Action(p) {
+      implicit request =>
+        getUserInfo.map {
+          user => f(AuthenticatedRequest(user, request))
+        }.getOrElse(onUnauthorized)
     }
 
   def Authenticated(f: AuthenticatedRequest[AnyContent] => Result): Action[AnyContent] =

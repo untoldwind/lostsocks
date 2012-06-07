@@ -63,5 +63,5 @@ object Login extends Controller {
   }
 
   private def redirectAuthenticated(user: User) = Redirect(routes.Dashboard.index)
-    .withSession("userId" -> user.id.toString, "username" -> user.username)
+    .withSession("userId" -> user.id.toString, "username" -> user.username, "roles" -> user.roleNames.reduceLeft(_ + ";" + _))
 }

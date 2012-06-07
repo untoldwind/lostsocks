@@ -8,7 +8,10 @@
 		<div id="page-main-menu">	
 			<ul>
 				<li><a href="@routes.Dashboard.index">Dashboard</a></li>
-			</ul>
+                @if(request.user.canAdmin) {
+                    <li>Admin</li>
+                }
+            </ul>
 		</div>
 		<div id="page-auth-panel">
 			<a href="@routes.UserProfile.index">@request.user.username</a> 
