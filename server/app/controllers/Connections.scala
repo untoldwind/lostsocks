@@ -15,7 +15,6 @@ import play.api.libs.Files.{TemporaryFile}
 import com.objectcode.lostsocks.common.Constants
 import java.util.zip.{GZIPOutputStream, GZIPInputStream}
 import java.net.InetAddress
-import com.objectcode.lostsocks.common.util.StringUtils
 import models.{ConnectionTable, IdGenerator}
 import engine.ExtendedConnection
 import com.objectcode.lostsocks.common.net.{DataPacket, Connection}
