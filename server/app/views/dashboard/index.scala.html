@@ -1,8 +1,38 @@
-@()(implicit request:AuthenticatedRequest[_])
+@(tables: Seq[ConnectionTable])(implicit request:AuthenticatedRequest[_])
 
 @import play.api.libs.json.Json
 
 @authenticated("Dashboard") {
 <h1>Dashboard</h1>
+@tables.map { table =>
+    <h2>Connection for @table.username</h2>
+    <table>
+        <tr>
+            <th>IP</th>
+            <th>Remote IP</th>
+            <th>Remote Port</th>
+            <th>Date of connection</th>
+            <th>Last Access (ms)</th>
+            <th>Bytes uploaded</th>
+            <th>Bytes downloaded</th>
+            <th>Upload speed (KB/s)</th>
+            <th>Download speed (KB/s)</th>
+            <th></th>
+        </tr>
+        @table.values.map { extConn =>
+            <tr>
+                <td>@extConn.ip</td>
+                <td>@extConn.destIP</td>
+                <td>@extConn.destPort</td>
+                <td>@extConn.creationDate</td>
+                <td>@(extConn.lastAccessDate.getTime - extConn.creationDate.getTime)</td>
+                <td>@extConn.uploadedBytes</td>
+                <td>@extConn.downloadedBytes</td>
+                <td>@extConn.currentUploadSpeed</td>
+                <td>@extConn.currentDownloadSpeed</td>
+            </tr>
+        }
+    </table>
+}
 }
 

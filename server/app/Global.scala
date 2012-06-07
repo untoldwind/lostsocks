@@ -1,4 +1,5 @@
-import engine.{ConnectionTable, ThreadPing}
+import models.ConnectionTable
+import engine.ThreadPing
 import org.squeryl.adapters.PostgreSqlAdapter
 import org.squeryl.{Session, SessionFactory}
 import play.api.db.DB
@@ -21,11 +22,14 @@ object Global extends GlobalSettings {
 
     Akka.system.scheduler.schedule(10 seconds, 10 seconds) {
       Logger.info("Sweep")
-      ThreadPing.pingAll
+      ThreadPing.sweepAll
       println("Remaining")
       ConnectionTable.foreach {
-        case (id, extConn ) =>
-          println("  " + id)
+        table =>
+          table.foreach {
+            case (id, extConn) =>
+              println("  " + id)
+          }
       }
     }
   }

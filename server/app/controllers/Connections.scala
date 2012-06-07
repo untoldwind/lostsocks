@@ -16,8 +16,8 @@ import com.objectcode.lostsocks.common.Constants
 import java.util.zip.{GZIPOutputStream, GZIPInputStream}
 import java.net.InetAddress
 import com.objectcode.lostsocks.common.util.StringUtils
-import models.IdGenerator
-import engine.{ConnectionTable, ExtendedConnection}
+import models.{ConnectionTable, IdGenerator}
+import engine.ExtendedConnection
 import com.objectcode.lostsocks.common.net.{DataPacket, Connection}
 
 object Connections extends Controller with Secured {
@@ -44,7 +44,7 @@ object Connections extends Controller with Secured {
       }
   }
 
-  def versionRequest(implicit request: Request[DataPacket]) = {
+  def versionRequest(implicit request: AuthenticatedRequest[DataPacket]) = {
 
     var output = new DataPacket()
     output.id = request.body.id
@@ -63,7 +63,7 @@ object Connections extends Controller with Secured {
     Ok(output)
   }
 
-  def connectionCreate(implicit request: Request[DataPacket]) = {
+  def connectionCreate(implicit request: AuthenticatedRequest[DataPacket]) = {
     val input = request.body
     var output = new DataPacket()
     output.id = input.id
@@ -112,7 +112,7 @@ object Connections extends Controller with Secured {
       extConn.authorizedTime = 0
 
       // Add this to the ConnectionTable
-      ConnectionTable.put(id_conn, extConn)
+      ConnectionTable(request.user).put(id_conn, extConn)
 
       // Build the response
       output.`type` = Constants.CONNECTION_CREATE_OK;
@@ -125,13 +125,13 @@ object Connections extends Controller with Secured {
     Ok(output)
   }
 
-  def connectionRequest(implicit request: Request[DataPacket]) = {
+  def connectionRequest(implicit request: AuthenticatedRequest[DataPacket]) = {
     val input = request.body
     var output = new DataPacket()
     val id_conn = input.id
     output.id = input.id
 
-    val extConn = ConnectionTable.get(id_conn)
+    val extConn = ConnectionTable(request.user).get(id_conn)
     if (!extConn.isDefined ) {
       Logger.warn("Connection not found : " + id_conn)
 
@@ -165,7 +165,7 @@ object Connections extends Controller with Secured {
 
         Logger.info("Connection closed: " + id_conn)
         // Remove the connection from the ConnectionTable
-        ConnectionTable.remove(id_conn)
+        ConnectionTable(request.user).remove(id_conn)
       }
       else
       {
@@ -183,7 +183,7 @@ object Connections extends Controller with Secured {
     Ok(output)
   }
 
-  def connectionDestroy(implicit request: Request[DataPacket]) = {
+  def connectionDestroy(implicit request: AuthenticatedRequest[DataPacket]) = {
     val input = request.body
     var output = new DataPacket()
     val id_conn = input.id
@@ -191,7 +191,7 @@ object Connections extends Controller with Secured {
 
     Logger.info("Connection destroy : " + id_conn)
 
-    val extConn = ConnectionTable.get(id_conn)
+    val extConn = ConnectionTable(request.user).get(id_conn)
 
     if (!extConn.isDefined)
     {
@@ -209,7 +209,7 @@ object Connections extends Controller with Secured {
       conn.disconnect()
 
       // Remove it from the ConnectionTable
-      ConnectionTable.remove(id_conn)
+      ConnectionTable(request.user).remove(id_conn)
 
       // Build the response
       output.`type` = Constants.CONNECTION_DESTROY_OK
