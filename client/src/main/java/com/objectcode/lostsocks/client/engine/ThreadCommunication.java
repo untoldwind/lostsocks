@@ -194,7 +194,7 @@ public class ThreadCommunication extends Thread {
 
                         CompressedPacket connectionCloseResult = sendHttpMessage(configuration, RequestType.CONNECTION_CLOSE, connectionId, null);
 
-                        if ( connectionCloseResult == null ) {
+                        if (connectionCloseResult == null) {
                             log.error("<CLIENT> SERVER fail closing");
                         }
                         log.info("<CLIENT> Disconnecting application (regular)");
@@ -240,7 +240,7 @@ public class ThreadCommunication extends Thread {
     public static CompressedPacket sendHttpMessage(IConfiguration config, RequestType requestType, String connectionId, CompressedPacket input) {
         HttpClient client = config.createHttpClient();
 
-        HttpRequest request = requestType.getHttpRequest(config.getTargetPath(), connectionId, input != null ? input.toEntity(): null);
+        HttpRequest request = requestType.getHttpRequest(config.getTargetPath(), connectionId, input != null ? input.toEntity() : null);
 
         for (int retry = 0; retry <= config.getMaxRetries(); retry++) {
             try {
@@ -249,7 +249,7 @@ public class ThreadCommunication extends Thread {
                 if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
                     return CompressedPacket.fromEntity(response.getEntity());
                 }
-                log.error("Failed request (try #" + retry + ") " + request + " Status: " + response.getStatusLine());
+                log.error("Failed request (try #" + retry + ") " + request.getRequestLine().getMethod() + " " + request.getRequestLine().getUri() + " Status: " + response.getStatusLine());
             } catch (IOException e) {
                 log.error("IOException (try #" + retry + ") " + e, e);
                 return null;

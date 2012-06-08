@@ -2,12 +2,15 @@ package engine
 
 import play.api.libs.openid.UserInfo
 import java.util.Date
+import akka.actor.ActorRef
+import play.api.libs.iteratee.Input
+import java.util.concurrent.LinkedBlockingQueue
+import akka.util.ByteString
 
 class ExtendedConnection {
   var ip:String = "?"
   var iprev:String = "?"
   var user:UserInfo = null
-  var conn:Connection = null
   val creationDate = new Date()
   var lastAccessDate = new Date()
   var uploadedBytes:Long = 0
@@ -19,4 +22,7 @@ class ExtendedConnection {
   var currentDownloadSpeed:Double = 0
   var timeout:Long = 0
   var authorizedTime:Long = 0
+
+  var connectionActor:ActorRef = null
+  var downQueue:LinkedBlockingQueue[Input[ByteString]] = null
 }

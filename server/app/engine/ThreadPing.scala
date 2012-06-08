@@ -28,14 +28,14 @@ object ThreadPing {
           id =>
             Logger.info("Closed connection " + id + " : Timeout reached...")
             val extConn = table.get(id)
-            extConn.map(_.conn.disconnect)
+            extConn.map(_.connectionActor ! ConnectionActor.Disconnect)
             table.remove(id)
         }
         closeForAuthorizedTime.foreach {
           id =>
             Logger.info("Closed connection " + id + " : Maximum time reached...")
             val extConn = table.get(id)
-            extConn.map(_.conn.disconnect)
+            extConn.map(_.connectionActor ! ConnectionActor.Disconnect)
             table.remove(id)
         }
     }

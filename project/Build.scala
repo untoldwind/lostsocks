@@ -22,7 +22,8 @@ object ApplicationBuild extends Build {
     settings = buildSettings ++ assemblySettings ++ addArtifact(Artifact("client", "assembly"), assembly) ).settings(
     organization := "com.objectcode.lostsocks",
     libraryDependencies ++= Seq(
-      "org.apache.httpcomponents" % "httpclient" % "4.2"
+      "org.apache.httpcomponents" % "httpclient" % "4.2",
+      "io.netty" % "netty" % "3.3.0.Final"
     ),
     crossPaths := false,
     unmanagedJars in Compile += file(System.getProperty("java.home") + "/lib/javaws.jar"),
