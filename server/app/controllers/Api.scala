@@ -1,18 +1,13 @@
 package controllers
 
 import scala.math.min
-import play.api.http.{ContentTypeOf, Writeable}
-import play.api.mvc.{Results, BodyParser, Action, Controller}
-import java.util.zip.{GZIPInputStream, GZIPOutputStream}
-import java.io.{ObjectInputStream, ByteArrayInputStream, ObjectOutputStream, ByteArrayOutputStream}
-import play.api.libs.iteratee.{Done, Iteratee}
-import play.api.libs.iteratee.Input.{El, Empty}
-import play.api.{Logger, Play}
-import com.objectcode.lostsocks.common.net.{Connection, DataPacket}
-import com.objectcode.lostsocks.common.Constants
+import play.api.mvc.{Action, Controller}
+import play.api.Logger
 import engine.ExtendedConnection
 import models.{ConnectionTable, IdGenerator, CompressedPacket}
 import utils.IPHelper
+import com.objectcode.lostsocks.common.net.{DataPacket, Connection}
+import com.objectcode.lostsocks.common.Constants
 
 
 object Api extends Controller with Secured with CompressedPacketFormat {
@@ -75,23 +70,70 @@ object Api extends Controller with Secured with CompressedPacketFormat {
       }
   }
 
-  def connectionPing(id: String) = Action(compressedPacket) {
+  def connectionRequest(id: String) = BasicAuthenticated(compressedPacket) {
     implicit request =>
-      Ok("bla")
+      ConnectionTable(request.user).get(id).map {
+        extConn =>
+          val lastAccessDate = extConn.lastAccessDate
+          extConn.lastAccessDate = new java.util.Date()
+          val conn = extConn.conn
+
+          // Add the sended bytes
+          extConn.uploadedBytes += request.body.data.size
+
+          // write the bytes
+          conn.write(request.body.data)
+
+          // Update the upload speed
+          val div = 1 + extConn.lastAccessDate.getTime - lastAccessDate.getTime
+          extConn.currentUploadSpeed = request.body.data.size.toDouble / div
+
+          // Build the response
+          val buf = conn.read()
+          if (buf == null) {
+            Logger.info("Connection closed: " + id)
+            // Remove the connection from the ConnectionTable
+            ConnectionTable(request.user).remove(id)
+
+            Ok(CompressedPacket(Array.empty[Byte], true))
+          } else {
+            // Add the received bytes
+            extConn.downloadedBytes += buf.size
+
+            // Update the download speed
+            val div = 1 + extConn.lastAccessDate.getTime - lastAccessDate.getTime
+            extConn.currentDownloadSpeed = buf.size.toDouble / div;
+
+            Ok(CompressedPacket(buf, false));
+          }
+      }.getOrElse(NotFound)
   }
 
-  def connectionPong(id: String) = Action(compressedPacket) {
+  def connectionClose(id: String) = BasicAuthenticated {
     implicit request =>
-      Ok("bla")
+      ConnectionTable(request.user).get(id).map {
+        extConn =>
+          val input = request.body
+
+          Logger.info("Connection destroy : " + id)
+
+          extConn.lastAccessDate = new java.util.Date()
+          val conn = extConn.conn
+
+          // Close it
+          conn.disconnect()
+
+          // Remove it from the ConnectionTable
+          ConnectionTable(request.user).remove(id)
+
+          // Build the response
+          Ok(CompressedPacket("Destroyed", true));
+      }.getOrElse {
+        println("Again1")
+        Logger.info("Connection already destroyed by timeout : " + id)
+
+        Ok(CompressedPacket("Already destroyed", true));
+      }
   }
 
-  def connectionRequest(id: String) = Action(compressedPacket) {
-    implicit request =>
-      Ok("bla")
-  }
-
-  def connectionClose(id: String) = Action(compressedPacket) {
-    implicit request =>
-      Ok("bla")
-  }
 }

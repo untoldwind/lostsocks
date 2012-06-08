@@ -9,7 +9,6 @@ import javax.jnlp.BasicService;
 import javax.jnlp.PersistenceService;
 import javax.jnlp.ServiceManager;
 import javax.jnlp.UnavailableServiceException;
-
 import java.io.File;
 import java.net.URL;
 

@@ -35,76 +35,62 @@ import java.io.InterruptedIOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class GenericConnectionServer extends Thread
-{
-  private static final Log log = LogFactory.getLog(GenericConnectionServer.class);
-  
-  public static final int LISTEN_TIMEOUT = 2000;
-  private static final String LOCALHOST_IP = "127.0.0.1";
+public class GenericConnectionServer extends Thread {
+    private static final Log log = LogFactory.getLog(GenericConnectionServer.class);
 
-  private ServerSocket serverSocket = null;
-  public boolean listening = true;
-  private IConfiguration configuration = null;
-  private Tunnel tunnel = null;
+    public static final int LISTEN_TIMEOUT = 2000;
+    private static final String LOCALHOST_IP = "127.0.0.1";
 
-  public GenericConnectionServer(Tunnel tunnel, IConfiguration configuration)
-  {
-    super();
-    this.tunnel = tunnel;
-    this.configuration = configuration;
-  }
+    private ServerSocket serverSocket = null;
+    public boolean listening = true;
+    private IConfiguration configuration = null;
+    private Tunnel tunnel = null;
 
-  public void run()
-  {
-    // Let's start
-    try
-    {
-      serverSocket = new ServerSocket(tunnel.getLocalPort());
-      serverSocket.setSoTimeout(LISTEN_TIMEOUT);
-    }
-    catch (IOException e)
-    {
-      log.error("<CLIENT> Unexpected Exception while creating ServerSocket in GenericConnectionServer : ", e);
+    public GenericConnectionServer(Tunnel tunnel, IConfiguration configuration) {
+        super();
+        this.tunnel = tunnel;
+        this.configuration = configuration;
     }
 
-    while(listening)
-    {
-      try
-      {
-        Socket s = serverSocket.accept();
-        if ((!s.getInetAddress().getHostAddress().equals(LOCALHOST_IP)) && configuration.isListenOnlyLocalhost())
-        {
-          // Log
-          log.error("<CLIENT> Incoming generic connection refused from IP " + s.getInetAddress().getHostAddress());
-
-          // Close the socket
-          s.close();
+    public void run() {
+        // Let's start
+        try {
+            serverSocket = new ServerSocket(tunnel.getLocalPort());
+            serverSocket.setSoTimeout(LISTEN_TIMEOUT);
+        } catch (IOException e) {
+            log.error("<CLIENT> Unexpected Exception while creating ServerSocket in GenericConnectionServer : ", e);
         }
-        else
-        {
-          log.error("<CLIENT> Incoming generic connection accepted from IP " + s.getInetAddress().getHostAddress());
-          Connection conn = new Connection(s);
-          ThreadCommunication tc = new ThreadCommunication(conn, tunnel.getDestinationUri() , configuration);
-          tc.start();
+
+        while (listening) {
+            try {
+                Socket s = serverSocket.accept();
+                if ((!s.getInetAddress().getHostAddress().equals(LOCALHOST_IP)) && configuration.isListenOnlyLocalhost()) {
+                    // Log
+                    log.error("<CLIENT> Incoming generic connection refused from IP " + s.getInetAddress().getHostAddress());
+
+                    // Close the socket
+                    s.close();
+                } else {
+                    log.error("<CLIENT> Incoming generic connection accepted from IP " + s.getInetAddress().getHostAddress());
+                    Connection conn = new Connection(s);
+                    ThreadCommunication tc = new ThreadCommunication(conn, tunnel.getDestinationUri(), configuration);
+                    tc.start();
+                }
+            } catch (InterruptedIOException iioe) {
+            } catch (Exception e) {
+                e.printStackTrace();
+                log.error("<CLIENT> Unexpected Exception while listening in GenericConnectionServer : ", e);
+            }
         }
-      }
-      catch (InterruptedIOException iioe){}
-      catch (Exception e)
-      {
-        log.error("<CLIENT> Unexpected Exception while listening in GenericConnectionServer : ", e);
-      }
+
+        try {
+            // Close the ServerSocket
+            serverSocket.close();
+        } catch (IOException e) {
+        }
     }
 
-    try
-    {
-      // Close the ServerSocket
-      serverSocket.close();
+    public void close() {
+        listening = false;
     }
-    catch (IOException e){}
-  }
-  
-  public void close()
-  {
-    listening = false;
-  }
 }

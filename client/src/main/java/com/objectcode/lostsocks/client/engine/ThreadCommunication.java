@@ -50,7 +50,7 @@ public class ThreadCommunication extends Thread {
 
     private Connection source = null;
 
-    private String id_conn = null;
+    private String connectionId = null;
 
     private String destinationUri = null;
 
@@ -95,11 +95,11 @@ public class ThreadCommunication extends Thread {
             log.info("<CLIENT> SERVER, create a connection to " + destinationUri);
             CompressedPacket connectionCreateResult = sendHttpMessage(configuration, RequestType.CONNECTION_CREATE, null, connectionCreate);
 
-            if (connectionCreateResult != null ) {
+            if (connectionCreateResult != null) {
                 String data[] = connectionCreateResult.getDataAsString().split(":");
-                id_conn = data[0];
+                connectionId = data[0];
                 initOk = true;
-                log.info("<SERVER> Connection created : " + id_conn);
+                log.info("<SERVER> Connection created : " + connectionId);
 
                 // Send the response packet to the socks client
                 GenericSocksHandler replyPacket = socksHandler;
@@ -148,7 +148,7 @@ public class ThreadCommunication extends Thread {
             log.info("<CLIENT> SERVER, create a connection to " + destinationUri);
             DataPacket response = sendHttpMessage(configuration, dataPacket);
             type = response.type;
-            id_conn = response.id;
+            connectionId = response.id;
             serverInfoMessage = new String(response.tab);
         } catch (Exception e) {
             log.error("<CLIENT> Cannot initiate a dialog with SERVER. Exception : " + e);
@@ -157,7 +157,7 @@ public class ThreadCommunication extends Thread {
 
         if (type == Constants.CONNECTION_CREATE_OK) {
             initOk = true;
-            log.info("<SERVER> Connection created : " + id_conn);
+            log.info("<SERVER> Connection created : " + connectionId);
         } else {
             log.error("<SERVER> " + serverInfoMessage);
         }
@@ -198,90 +198,45 @@ public class ThreadCommunication extends Thread {
                 }
                 if ((!requestOnlyIfClientActivity) || (forceRequest) || (line == null) || (line.length > 0)) {
                     lastUpdateTime = new java.util.Date().getTime();
-                    DataPacket dataPacket = new DataPacket();
-                    dataPacket.id = id_conn;
 
                     if (line == null) {
                         // Connection closed
                         log.info("<CLIENT> Application closed the connection");
-                        log.info("<CLIENT> SERVER, close the connection " + id_conn);
+                        log.info("<CLIENT> SERVER, close the connection " + connectionId);
                         requestOnlyIfClientActivity = false;
-                        // Speeds up the shutdown
-                        dataPacket.type = Constants.CONNECTION_DESTROY;
-                        dataPacket.tab = Constants.TAB_EMPTY;
-                    } else {
-                        //configuration.printlnDebug("<CLIENT> SERVER, update the connection " + id_conn);
-                        dataPacket.type = Constants.CONNECTION_REQUEST;
-                        dataPacket.tab = line;
-                    }
 
-                    // Send the message
-                    boolean packetTransmitted = false;
-                    int retry = 0;
-                    DataPacket response = null;
-                    while ((!packetTransmitted) && (retry < 1 + configuration.getMaxRetries())) {
-                        try {
-                            response = sendHttpMessage(configuration, dataPacket);
-                            packetTransmitted = true;
-                        } catch (Exception e) {
-                            retry++;
-                            log.warn("<CLIENT> Cannot reach SERVER (try #" + retry + "). Exception : " + e);
-                            Thread.sleep(configuration.getDelayBetweenTries());
+                        CompressedPacket connectionCloseResult = sendHttpMessage(configuration, RequestType.CONNECTION_CLOSE, connectionId, null);
+
+                        if ( connectionCloseResult == null ) {
+                            log.error("<CLIENT> SERVER fail closing");
                         }
-                    }
-                    if (retry == 1 + configuration.getMaxRetries()) {
-                        log.error("<CLIENT> The maximum number of retries has been done");
                         log.error("<CLIENT> Disconnecting application");
                         source.disconnect();
                         dialogInProgress = false;
-                        return;
-                    }
+                    } else {
+                        CompressedPacket connectionRequset = new CompressedPacket(line, false);
+                        CompressedPacket connectionResult = sendHttpMessage(configuration, RequestType.CONNECTION_REQUEST, connectionId, connectionRequset);
 
-                    // Write the received bytes
-                    switch (response.type) {
-                        case Constants.CONNECTION_RESPONSE:
-                            source.write(response.tab);
-                            break;
-                        case Constants.CONNECTION_NOT_FOUND:
-                            log.error("<SERVER> Connection not found : " + id_conn);
-                            break;
-                        case Constants.CONNECTION_DESTROY_OK:
-                            log.info("<SERVER> As CLIENT asked, connection closed : " + id_conn);
-                            break;
-                        default:
-                            log.warn("<CLIENT> SERVER sent an unexpected response type : " + response.type);
-                            break;
-                    }
+                        if (connectionResult == null) {
+                            log.error("<CLIENT> Disconnecting application");
+                            source.disconnect();
+                            dialogInProgress = false;
+                            return;
+                        }
 
-                    // If the connection has been closed
-                    if (response.isConnClosed) {
-                        // Log
-                        log.info("<SERVER> Remote server closed the connection : " + response.id);
+                        source.write(connectionResult.getData());
 
-                        // Close the source connection
-                        log.info("<CLIENT> Disconnecting application");
-                        source.disconnect();
+                        if (connectionResult.isEndOfCommunication()) {
+                            // Log
+                            log.info("<SERVER> Remote server closed the connection : " + connectionId);
 
-                        // Stop the thread
-                        dialogInProgress = false;
-                    }
+                            // Close the source connection
+                            log.info("<CLIENT> Disconnecting application");
+                            source.disconnect();
 
-                    if (response.type == Constants.CONNECTION_DESTROY_OK) {
-                        // Close the source connection
-                        log.info("<CLIENT> Disconnecting application");
-                        source.disconnect();
-
-                        // Stop the thread
-                        dialogInProgress = false;
-                    }
-
-                    if (response.type == Constants.CONNECTION_NOT_FOUND) {
-                        // Close the source connection
-                        log.error("<CLIENT> Disconnecting application");
-                        source.disconnect();
-
-                        // Stop the thread
-                        dialogInProgress = false;
+                            // Stop the thread
+                            dialogInProgress = false;
+                        }
                     }
                 }
 
@@ -289,7 +244,8 @@ public class ThreadCommunication extends Thread {
                 //configuration.printlnDebug("<CLIENT> Sleeping " + configuration.getDelay() + " ms");
                 Thread.sleep(configuration.getDelay());
             } catch (Exception e) {
-                log.error("<CLIENT> Unexpected Exception : " + e);
+                e.printStackTrace();
+                log.error("<CLIENT> Unexpected Exception : " + e, e);
             }
         }
     }
@@ -297,22 +253,23 @@ public class ThreadCommunication extends Thread {
     public static CompressedPacket sendHttpMessage(IConfiguration config, RequestType requestType, String connectionId, CompressedPacket input) {
         HttpClient client = config.createHttpClient();
 
-        HttpRequest request = requestType.getHttpRequest(config.getTargetPath(), connectionId, input.toEntity());
+        HttpRequest request = requestType.getHttpRequest(config.getTargetPath(), connectionId, input != null ? input.toEntity(): null);
 
-        try {
-            HttpResponse response = client.execute(config.getTargetHost(), request);
+        for (int retry = 0; retry <= config.getMaxRetries(); retry++) {
+            try {
+                HttpResponse response = client.execute(config.getTargetHost(), request);
 
-            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                log.error("Failed request " + request + " Status: " + response.getStatusLine());
-
+                if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                    return CompressedPacket.fromEntity(response.getEntity());
+                }
+                log.error("Failed request (try #" + retry + ") " + request + " Status: " + response.getStatusLine());
+            } catch (IOException e) {
+                log.error("IOException (try #" + retry + ") " + e, e);
                 return null;
             }
-
-            return CompressedPacket.fromEntity(response.getEntity());
-        } catch (IOException e) {
-            log.error("IOException " + e, e);
-            return null;
         }
+        log.error("<CLIENT> The maximum number of retries has been done");
+        return null;
     }
 
     /**
