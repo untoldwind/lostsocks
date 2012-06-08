@@ -1,23 +1,35 @@
-import javax.sound.midi.Sequence
 import sbt._
 import Keys._
 import PlayProject._
+import sbtassembly.Plugin._
+import AssemblyKeys._
 
 object ApplicationBuild extends Build {
 
   val appVersion = "0.1-SNAPSHOT"
 
-  lazy val parent = Project(id = "parent",
-    base = file(".")).settings(
+  lazy val buildSettings = Defaults.defaultSettings ++ Seq(
+    version := "0.1-SNAPSHOT",
     organization := "com.objectcode.lostsocks"
+  )
+
+  lazy val parent = Project(id = "parent",
+    base = file("."), settings = buildSettings).settings(
+    crossPaths := false
   ) aggregate(client, server)
 
-  lazy val client = Project(id = "client", base = file("client")).settings(
+  lazy val client = Project(id = "client", base = file("client"),
+    settings = buildSettings ++ assemblySettings ++ addArtifact(Artifact("client", "assembly"), assembly) ).settings(
     organization := "com.objectcode.lostsocks",
     libraryDependencies ++= Seq(
       "org.apache.httpcomponents" % "httpclient" % "4.2"
     ),
-    unmanagedJars in Compile += file(System.getProperty("java.home") + "/lib/javaws.jar")
+    crossPaths := false,
+    unmanagedJars in Compile += file(System.getProperty("java.home") + "/lib/javaws.jar"),
+    excludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
+      cp filter { p => p.data.getName == "javaws.jar" || p.data.getName == "scala-library.jar" }
+    },
+    mainClass in assembly := Some("com.objectcode.lostsocks.client.Main")
   )
 
   val appDependencies = Seq(
@@ -26,7 +38,5 @@ object ApplicationBuild extends Build {
   )
 
   lazy val server = PlayProject("server", appVersion, appDependencies, mainLang = SCALA,
-    path = file("server")).settings(
-    organization := "com.objectcode.lostsocks"
-  )
+    path = file("server"), settings = buildSettings)
 }
