@@ -24,9 +24,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 package com.objectcode.lostsocks.client.engine;
 
+import com.objectcode.lostsocks.client.Constants;
 import com.objectcode.lostsocks.client.config.IConfiguration;
-import com.objectcode.lostsocks.common.Constants;
-import com.objectcode.lostsocks.common.net.Connection;
+import com.objectcode.lostsocks.client.net.Connection;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -55,7 +55,6 @@ public class SocksConnectionServer extends Thread {
         CompressedPacket versionCheck = new CompressedPacket(Constants.APPLICATION_VERSION, true);
 
         // Send the connection
-        int type = Constants.CONNECTION_UNSPECIFIED_TYPE;
         String id = null;
         String serverInfoMessage = null;
         try {

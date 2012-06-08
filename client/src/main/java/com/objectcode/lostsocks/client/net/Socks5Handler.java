@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package com.objectcode.lostsocks.client.net;
 
 import com.objectcode.lostsocks.client.config.IConfiguration;
-import com.objectcode.lostsocks.common.net.Connection;
 
 public class Socks5Handler extends GenericSocksHandler
 {

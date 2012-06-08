@@ -3,11 +3,9 @@ package controllers
 import scala.math.min
 import play.api.mvc.{Action, Controller}
 import play.api.Logger
-import engine.ExtendedConnection
 import models.{ConnectionTable, IdGenerator, CompressedPacket}
 import utils.IPHelper
-import com.objectcode.lostsocks.common.net.{DataPacket, Connection}
-import com.objectcode.lostsocks.common.Constants
+import engine.{Connection, ExtendedConnection}
 
 
 object Api extends Controller with Secured with CompressedPacketFormat {
@@ -41,8 +39,8 @@ object Api extends Controller with Secured with CompressedPacketFormat {
       var userTimeout = parts(2).toInt
       if (userTimeout < 0) userTimeout = 0
 
-      val conn = new Connection(Connection.CONNECTION_CLIENT_TYPE)
-      if (conn.connect(host, port) != 0) {
+      val conn = new Connection()
+      if (!conn.connect(host, port)) {
         Logger.warn("Connection " + connectionId + " failed from " + iprev + "(" + ip + ") to " + host + ":" + port)
         MethodNotAllowed("Server was unable to connect to " + host + ":" + port)
       } else {
@@ -89,7 +87,7 @@ object Api extends Controller with Secured with CompressedPacketFormat {
           extConn.currentUploadSpeed = request.body.data.size.toDouble / div
 
           // Build the response
-          val buf = conn.read()
+          val buf = conn.read
           if (buf == null) {
             Logger.info("Connection closed: " + id)
             // Remove the connection from the ConnectionTable
@@ -102,9 +100,9 @@ object Api extends Controller with Secured with CompressedPacketFormat {
 
             // Update the download speed
             val div = 1 + extConn.lastAccessDate.getTime - lastAccessDate.getTime
-            extConn.currentDownloadSpeed = buf.size.toDouble / div;
+            extConn.currentDownloadSpeed = buf.size.toDouble / div
 
-            Ok(CompressedPacket(buf, false));
+            Ok(CompressedPacket(buf, false))
           }
       }.getOrElse(NotFound)
   }
@@ -121,7 +119,7 @@ object Api extends Controller with Secured with CompressedPacketFormat {
           val conn = extConn.conn
 
           // Close it
-          conn.disconnect()
+          conn.disconnect
 
           // Remove it from the ConnectionTable
           ConnectionTable(request.user).remove(id)

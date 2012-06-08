@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // Author :       Florent CUETO  & Sebastien LEBRETON <socksviahttp@cqs.dyndns.org>
 // Description :  Constants
 
-package com.objectcode.lostsocks.common;
+package com.objectcode.lostsocks.client;
 
 public class Constants
 {
@@ -31,25 +31,4 @@ public class Constants
   public static final String APPLICATION_NAME = "Socks via HTTP";
   public static final String AUTHOR_NAME = "Florent CUETO & Sebastien LEBRETON";
   public static final String AUTHOR_EMAIL = "socksviahttp@cqs.dyndns.org";
-
-
-  // Comm client <-> server
-  public static final int CONNECTION_UNSPECIFIED_TYPE = 1;
-  public static final int CONNECTION_NOT_FOUND = 2;
-  public static final int CONNECTION_CREATE = 11;
-  public static final int CONNECTION_CREATE_OK = 12;
-  public static final int CONNECTION_CREATE_KO = 13;
-  public static final int CONNECTION_PING = 21;
-  public static final int CONNECTION_PONG = 22;
-  public static final int CONNECTION_PONG_RECEIVED = 23;
-  public static final int CONNECTION_VERSION_REQUEST = 24;
-  public static final int CONNECTION_VERSION_RESPONSE_OK = 25;
-  public static final int CONNECTION_VERSION_RESPONSE_KO = 26;
-  public static final int CONNECTION_REQUEST = 31;
-  public static final int CONNECTION_RESPONSE = 32;
-  public static final int CONNECTION_DESTROY = 41;
-  public static final int CONNECTION_DESTROY_OK = 42;
-  public static final int CONNECTION_DESTROY_KO = 43;
-
-  public static final byte[] TAB_EMPTY = "".getBytes();
 }

@@ -1,7 +1,6 @@
 package engine
 
 import play.api.libs.openid.UserInfo
-import com.objectcode.lostsocks.common.net.Connection
 import java.util.Date
 
 class ExtendedConnection {

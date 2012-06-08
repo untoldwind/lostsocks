@@ -21,23 +21,16 @@
 package com.objectcode.lostsocks.client.engine;
 
 import com.objectcode.lostsocks.client.config.IConfiguration;
+import com.objectcode.lostsocks.client.net.Connection;
 import com.objectcode.lostsocks.client.net.GenericSocksHandler;
-import com.objectcode.lostsocks.common.Constants;
-import com.objectcode.lostsocks.common.net.Connection;
-import com.objectcode.lostsocks.common.net.DataPacket;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.ByteArrayEntity;
 
-import java.io.*;
-import java.util.zip.GZIPInputStream;
+import java.io.IOException;
 
 /**
  * Description of the Class
@@ -136,30 +129,24 @@ public class ThreadCommunication extends Thread {
         log.info("<CLIENT> An application asked a connection to " + destinationUri);
 
         // Create a connection on the servlet server
-        DataPacket dataPacket = new DataPacket();
-        dataPacket.type = Constants.CONNECTION_CREATE;
-        dataPacket.id = configuration.getUser() + ":" + configuration.getPassword() + ":" + configuration.getTimeout();
-        dataPacket.tab = destinationUri.getBytes();
+        CompressedPacket connectionCreate = new CompressedPacket(destinationUri + ":" + configuration.getTimeout(), false);
 
         // Send the connection
-        int type = Constants.CONNECTION_UNSPECIFIED_TYPE;
         String serverInfoMessage = null;
         try {
             log.info("<CLIENT> SERVER, create a connection to " + destinationUri);
-            DataPacket response = sendHttpMessage(configuration, dataPacket);
-            type = response.type;
-            connectionId = response.id;
-            serverInfoMessage = new String(response.tab);
+            CompressedPacket connectionCreateResult = sendHttpMessage(configuration, RequestType.CONNECTION_CREATE, null, connectionCreate);
+            if (connectionCreateResult != null) {
+                String data[] = connectionCreateResult.getDataAsString().split(":");
+                connectionId = data[0];
+                initOk = true;
+                log.info("<SERVER> Connection created : " + connectionId);
+            } else {
+                log.error("<SERVER> Connection creation failed");
+            }
         } catch (Exception e) {
             log.error("<CLIENT> Cannot initiate a dialog with SERVER. Exception : " + e);
             return;
-        }
-
-        if (type == Constants.CONNECTION_CREATE_OK) {
-            initOk = true;
-            log.info("<SERVER> Connection created : " + connectionId);
-        } else {
-            log.error("<SERVER> " + serverInfoMessage);
         }
     }
 
@@ -210,7 +197,7 @@ public class ThreadCommunication extends Thread {
                         if ( connectionCloseResult == null ) {
                             log.error("<CLIENT> SERVER fail closing");
                         }
-                        log.error("<CLIENT> Disconnecting application");
+                        log.info("<CLIENT> Disconnecting application (regular)");
                         source.disconnect();
                         dialogInProgress = false;
                     } else {
@@ -231,7 +218,7 @@ public class ThreadCommunication extends Thread {
                             log.info("<SERVER> Remote server closed the connection : " + connectionId);
 
                             // Close the source connection
-                            log.info("<CLIENT> Disconnecting application");
+                            log.info("<CLIENT> Disconnecting application (regular)");
                             source.disconnect();
 
                             // Stop the thread
@@ -270,72 +257,5 @@ public class ThreadCommunication extends Thread {
         }
         log.error("<CLIENT> The maximum number of retries has been done");
         return null;
-    }
-
-    /**
-     * Description of the Method
-     *
-     * @param config Description of the Parameter
-     * @param source Description of the Parameter
-     * @return Description of the Return Value
-     * @throws IOException            Description of the Exception
-     * @throws ClassNotFoundException Description of the Exception
-     */
-    public static DataPacket sendHttpMessage(IConfiguration config, DataPacket source)
-            throws IOException, ClassNotFoundException {
-        // Send an HTTP message
-        DataPacket ret = null;
-        InputStream is = null;
-        ObjectInputStream ois = null;
-
-        HttpClient client = config.createHttpClient();
-
-        HttpEntityEnclosingRequestBase method = null;
-
-        try {
-            if (source.type == Constants.CONNECTION_CREATE || source.type == Constants.CONNECTION_VERSION_REQUEST) {
-                method = new HttpPost("/connections");
-            } else {
-                method = new HttpPut("/connections/" + source.id);
-            }
-
-            method.setHeader("Content-Type", "application/x-java-serialized-object");
-
-            // Write the serialized object as post data
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            java.util.zip.GZIPOutputStream zos = new java.util.zip.GZIPOutputStream(bos);
-            ObjectOutputStream out = new ObjectOutputStream(zos);
-            out.writeObject(source);
-            out.flush();
-            out.close();
-
-            method.setEntity(new ByteArrayEntity(bos.toByteArray()));
-
-            HttpResponse response = null;
-            response = client.execute(config.getTargetHost(), method);
-
-            // Create the InputStream
-            is = response.getEntity().getContent();
-
-            // Create the GZIPInputStream
-            GZIPInputStream zis = new GZIPInputStream(is);
-
-            // Create the ObjectInputStream
-            ois = new ObjectInputStream(zis);
-
-            // Read the response
-            ret = (DataPacket) ois.readObject();
-
-            // Close the stream
-            ois.close();
-            is.close();
-
-            // Return the value
-            return (ret);
-        } finally {
-            if (method != null) {
-                method.releaseConnection();
-            }
-        }
     }
 }

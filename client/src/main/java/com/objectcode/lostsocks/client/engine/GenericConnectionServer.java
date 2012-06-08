@@ -26,7 +26,7 @@ package com.objectcode.lostsocks.client.engine;
 
 import com.objectcode.lostsocks.client.config.IConfiguration;
 import com.objectcode.lostsocks.client.config.Tunnel;
-import com.objectcode.lostsocks.common.net.Connection;
+import com.objectcode.lostsocks.client.net.Connection;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

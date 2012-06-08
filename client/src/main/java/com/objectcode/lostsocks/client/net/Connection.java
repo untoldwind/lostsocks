@@ -22,10 +22,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // Author :       Florent CUETO  & Sebastien LEBRETON <socksviahttp@cqs.dyndns.org>
 // Description :  TCP/IP Connection
 
-package com.objectcode.lostsocks.common.net;
+package com.objectcode.lostsocks.client.net;
 
-import java.net.*;
 import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class Connection
 {

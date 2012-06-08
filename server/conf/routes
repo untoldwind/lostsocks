@@ -30,7 +30,3 @@ POST    /api/versionCheck           controllers.Api.versionCheck
 POST    /api/connections            controllers.Api.connectionCreate
 PUT     /api/connections/:id        controllers.Api.connectionRequest(id:String)
 DELETE  /api/connections/:id        controllers.Api.connectionClose(id:String)
-
-POST    /connections                controllers.Connections.create
-POST    /connections/:id            controllers.Connections.update(id:String)
-PUT     /connections/:id            controllers.Connections.update(id:String)
