@@ -27,6 +27,7 @@ import com.objectcode.lostsocks.common.net.Connection;
 import com.objectcode.lostsocks.common.net.DataPacket;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
@@ -35,11 +36,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ByteArrayEntity;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -96,7 +93,7 @@ public class ThreadCommunication extends Thread {
 
         try {
             log.info("<CLIENT> SERVER, create a connection to " + destinationUri);
-            CompressedPacket connectionCreateResult = sendHttpMessage(configuration, RequestType.CONNECTION_CREATE, connectionCreate);
+            CompressedPacket connectionCreateResult = sendHttpMessage(configuration, RequestType.CONNECTION_CREATE, null, connectionCreate);
 
             if (connectionCreateResult != null ) {
                 String data[] = connectionCreateResult.getDataAsString().split(":");
@@ -297,13 +294,10 @@ public class ThreadCommunication extends Thread {
         }
     }
 
-    public static CompressedPacket sendHttpMessage(IConfiguration config, RequestType requestType, CompressedPacket input) {
+    public static CompressedPacket sendHttpMessage(IConfiguration config, RequestType requestType, String connectionId, CompressedPacket input) {
         HttpClient client = config.createHttpClient();
 
-        HttpPost request = new HttpPost(config.getTargetPath() + requestType.getUri());
-
-        request.setHeader("Content-Type", "application/x-compressed-bytes");
-        request.setEntity(input.toEntity());
+        HttpRequest request = requestType.getHttpRequest(config.getTargetPath(), connectionId, input.toEntity());
 
         try {
             HttpResponse response = client.execute(config.getTargetHost(), request);

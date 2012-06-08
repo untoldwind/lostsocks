@@ -5,6 +5,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -18,6 +19,8 @@ public class CompressedPacket {
 
     private final byte[] data;
     private final boolean endOfCommunication;
+
+    private final ContentType CONTENT_TYPE = ContentType.create("application/x-compressed-bytes");
 
     public CompressedPacket(byte[] data, boolean endOfCommunication) {
         this.data = data;
@@ -62,7 +65,7 @@ public class CompressedPacket {
             dos.writeBoolean(endOfCommunication);
             dos.flush();
             dos.close();
-            return new ByteArrayEntity(bos.toByteArray());
+            return new ByteArrayEntity(bos.toByteArray(), CONTENT_TYPE);
         } catch (Exception e) {
             log.error("Encoding problem " + e, e);
             throw new RuntimeException(e);

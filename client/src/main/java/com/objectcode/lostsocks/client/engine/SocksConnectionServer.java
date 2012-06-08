@@ -60,7 +60,7 @@ public class SocksConnectionServer extends Thread {
         String serverInfoMessage = null;
         try {
             log.info("<CLIENT> Version check : " + Constants.APPLICATION_VERSION + " - URL : " + configuration.getUrlString());
-            CompressedPacket versionCheckResult = ThreadCommunication.sendHttpMessage(configuration, RequestType.VERSION_CHECK, versionCheck);
+            CompressedPacket versionCheckResult = ThreadCommunication.sendHttpMessage(configuration, RequestType.VERSION_CHECK, null, versionCheck);
 
             if (versionCheckResult != null) {
                 if (!Constants.APPLICATION_VERSION.equals(versionCheckResult.getDataAsString()))

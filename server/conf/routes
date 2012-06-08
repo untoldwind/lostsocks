@@ -26,12 +26,10 @@ POST    /admin/users                controllers.admin.Users.create
 GET     /admin/users/:id/edit       controllers.admin.Users.edit(id:Long)
 POST    /admin/users/:id            controllers.admin.Users.update(id:Long)
 
-POST    /api/versionCheck            controllers.Api.versionCheck
-POST    /api/connections             controllers.Api.connectionCreate
-POST    /api/connections/:id/ping    controllers.Api.connectionPing(id:String)
-POST    /api/connections/:id/pong    controllers.Api.connectionPong(id:String)
-POST    /api/connections/:id/request controllers.Api.connectionRequest(id:String)
-POST    /api/connections/:id/close   controllers.Api.connectionClose(id:String)
+POST    /api/versionCheck           controllers.Api.versionCheck
+POST    /api/connections            controllers.Api.connectionCreate
+PUT     /api/connections/:id        controllers.Api.connectionRequest(id:String)
+DELETE  /api/connections/:id        controllers.Api.connectionClose(id:String)
 
 POST    /connections                controllers.Connections.create
 POST    /connections/:id            controllers.Connections.update(id:String)
