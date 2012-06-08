@@ -92,43 +92,33 @@ public class ThreadCommunication extends Thread {
         log.info("<CLIENT> An application asked a connection to " + destinationUri);
         log.debug("<CLIENT> Handler type : " + socksHandler.getLabel());
 
-        // Create a connection request
-        DataPacket dataPacket = new DataPacket();
-        dataPacket.type = Constants.CONNECTION_CREATE;
-        dataPacket.id = configuration.getUser() + ":" + configuration.getPassword() + ":" + configuration.getTimeout();
-        dataPacket.tab = destinationUri.getBytes();
+        CompressedPacket connectionCreate = new CompressedPacket(destinationUri + ":" + configuration.getTimeout(), false);
 
-        // Send the connection request to the HTTP server
-        int type = Constants.CONNECTION_UNSPECIFIED_TYPE;
-        String serverInfoMessage = null;
         try {
             log.info("<CLIENT> SERVER, create a connection to " + destinationUri);
-            DataPacket response = sendHttpMessage(configuration, dataPacket);
-            type = response.type;
-            id_conn = response.id;
-            serverInfoMessage = new String(response.tab);
+            CompressedPacket connectionCreateResult = sendHttpMessage(configuration, RequestType.CONNECTION_CREATE, connectionCreate);
+
+            if (connectionCreateResult != null ) {
+                String data[] = connectionCreateResult.getDataAsString().split(":");
+                id_conn = data[0];
+                initOk = true;
+                log.info("<SERVER> Connection created : " + id_conn);
+
+                // Send the response packet to the socks client
+                GenericSocksHandler replyPacket = socksHandler;
+                replyPacket.setDestIP(data[1]);
+                replyPacket.setDestPort(Integer.parseInt(data[2]));
+                this.source.write(replyPacket.buildResponse(GenericSocksHandler.RESPONSE_SUCCESS));
+            } else {
+                log.error("<SERVER> Connection creation failed");
+
+                // Send the response packet to the socks client
+                GenericSocksHandler replyPacket = socksHandler;
+                this.source.write(replyPacket.buildResponse(GenericSocksHandler.RESPONSE_FAILURE));
+            }
         } catch (Exception e) {
-            e.printStackTrace();
             log.error("<CLIENT> Cannot initiate a dialog with SERVER. Exception : " + e);
             return;
-        }
-
-        if (type == Constants.CONNECTION_CREATE_OK) {
-            initOk = true;
-            log.info("<SERVER> Connection created : " + id_conn);
-
-            // Send the response packet to the socks client
-            GenericSocksHandler replyPacket = socksHandler;
-            String[] resp = serverInfoMessage.split(":");
-            replyPacket.setDestIP(resp[0]);
-            replyPacket.setDestPort(Integer.parseInt(resp[1]));
-            this.source.write(replyPacket.buildResponse(GenericSocksHandler.RESPONSE_SUCCESS));
-        } else {
-            log.error("<SERVER> " + serverInfoMessage);
-
-            // Send the response packet to the socks client
-            GenericSocksHandler replyPacket = socksHandler;
-            this.source.write(replyPacket.buildResponse(GenericSocksHandler.RESPONSE_FAILURE));
         }
     }
 
