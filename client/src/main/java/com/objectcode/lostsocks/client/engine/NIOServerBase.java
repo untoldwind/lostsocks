@@ -5,19 +5,17 @@ import com.objectcode.lostsocks.client.Constants;
 import com.objectcode.lostsocks.client.config.IConfiguration;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.HeapChannelBufferFactory;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-import org.jboss.netty.util.Timeout;
-import org.jboss.netty.util.TimerTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -67,7 +65,7 @@ public abstract class NIOServerBase {
         String serverInfoMessage = null;
         try {
             log.info("<CLIENT> Version check : " + Constants.APPLICATION_VERSION + " - URL : " + configuration.getUrlString());
-            Future<CompressedPacket> future = sendHttpMessage(configuration, RequestType.VERSION_CHECK, null, versionCheck, null);
+            Future<CompressedPacket> future = sendHttpMessage(RequestType.VERSION_CHECK, null, versionCheck, null);
 
             CompressedPacket versionCheckResult = future.get(10, TimeUnit.SECONDS);
 
@@ -88,16 +86,14 @@ public abstract class NIOServerBase {
         }
     }
 
+    public Future<CompressedPacket> sendHttpMessage(RequestType requestType,
+                                                    String connectionId,
+                                                    CompressedPacket input,
+                                                    final IRequestCallback callback) {
+        AsyncHttpClient client = configuration.createHttpClient();
 
-    public static Future<CompressedPacket> sendHttpMessage(IConfiguration config,
-                                                           RequestType requestType,
-                                                           String connectionId,
-                                                           CompressedPacket input,
-                                                           final IRequestCallback callback) {
-        AsyncHttpClient client = config.createHttpClient();
-
-        RequestBuilder requestBuilder = requestType.getHttpRequest(config.getUrlString(), connectionId, input != null ? input.toBody() : null);
-        requestBuilder.setRealm(config.getRealm());
+        RequestBuilder requestBuilder = requestType.getHttpRequest(configuration.getUrlString(), connectionId, input != null ? input.toBody() : null);
+        requestBuilder.setRealm(configuration.getRealm());
         final Request request = requestBuilder.build();
         try {
             return client.executeRequest(request, new AsyncCompletionHandler<CompressedPacket>() {
@@ -114,7 +110,6 @@ public abstract class NIOServerBase {
                     log.error("<CLIENT> Failed request " + request.getUrl() + " " + response.getStatusCode() + " " + response.getStatusText());
                     return null;
                 }
-
             });
         } catch (Exception e) {
             log.error("Exception " + e, e);
@@ -122,11 +117,41 @@ public abstract class NIOServerBase {
         return null;
     }
 
-    protected class ServerHandlerBase extends SimpleChannelUpstreamHandler implements TimerTask {
+    public void connectDownStream(String connectionId, final IDownStreamCallback callback) {
+        AsyncHttpClient client = configuration.createHttpClient();
+
+        RequestBuilder requestBuilder = new RequestBuilder("GET");
+        requestBuilder.setUrl(configuration.getUrl() + "/api/connections/" + connectionId);
+        requestBuilder.setRealm(configuration.getRealm());
+
+        final Request request = requestBuilder.build();
+
+        try {
+            client.executeRequest(request, new AsyncCompletionHandler<Object>() {
+                @Override
+                public Object onCompleted(Response response) throws Exception {
+                    if (response.getStatusCode() != 200)
+                        log.error("<CLIENT> Failed request " + request.getUrl() + " " + response.getStatusCode() + " " + response.getStatusText());
+                    System.out.println(">>> EOF");
+                    callback.sendEOF();
+                    return null;
+                }
+
+                @Override
+                public STATE onBodyPartReceived(HttpResponseBodyPart content) throws Exception {
+                    System.out.println(">>> Body part " + Arrays.toString(content.getBodyPartBytes()));
+                    callback.sendData(content.getBodyPartBytes());
+                    return STATE.CONTINUE;
+                }
+            });
+        } catch (Exception e) {
+            log.error("Exception " + e, e);
+        }
+    }
+
+    protected class ServerHandlerBase extends SimpleChannelUpstreamHandler {
         protected String connectionId;
         protected Channel channel;
-
-        protected Timeout timeout;
 
         @Override
         public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
@@ -137,36 +162,13 @@ public abstract class NIOServerBase {
             super.channelDisconnected(ctx, e);    //To change body of overridden methods use File | Settings | File Templates.
         }
 
-        void schedulePoll() {
-            if (timeout != null)
-                timeout.cancel();
-            timeout = NIOBackend.INSTANCE.getTimer().newTimeout(this, configuration.getDelay(), TimeUnit.MILLISECONDS);
-        }
-
-        void cancelPoll() {
-            if (timeout != null)
-                timeout.cancel();
-        }
-
-        public void run(Timeout timeout) throws Exception {
-            sendRequest(null, new IRequestCallback() {
-                public void onSuccess(CompressedPacket result) {
-                    if (!result.isEndOfCommunication())
-                        schedulePoll();
-                }
-
-                public void onFailure(int statusCode, String statusText) {
-                }
-            });
-        }
-
         protected void sendConnectionRequest(String destinationUri, final IRequestCallback callback) {
             log.info("<CLIENT> An application asked a connection to " + destinationUri);
 
-            CompressedPacket connectionCreate = new CompressedPacket(destinationUri + ":" + configuration.getTimeout(), false);
+            CompressedPacket connectionCreate = new CompressedPacket(destinationUri + ":" + configuration.getTimeout() + ":stream", false);
             try {
                 log.info("<CLIENT> SERVER, create a connection to " + destinationUri);
-                sendHttpMessage(configuration, RequestType.CONNECTION_CREATE, null, connectionCreate,
+                sendHttpMessage(RequestType.CONNECTION_CREATE, null, connectionCreate,
                         new IRequestCallback() {
                             public void onSuccess(CompressedPacket result) {
                                 String data[] = result.getDataAsString().split(":");
@@ -190,13 +192,13 @@ public abstract class NIOServerBase {
 
         protected void sendRequest(ChannelBuffer data, final IRequestCallback callback) {
             CompressedPacket connectionRequset = new CompressedPacket(data != null ? data.array() : new byte[0], false);
-            sendHttpMessage(configuration, RequestType.CONNECTION_REQUEST, connectionId, connectionRequset,
+            sendHttpMessage(RequestType.CONNECTION_REQUEST, connectionId, connectionRequset,
                     new IRequestCallback() {
                         public void onSuccess(CompressedPacket result) {
-                            byte[] resultData = result.getData();
-                            ChannelBuffer buffer = HeapChannelBufferFactory.getInstance().getBuffer(resultData, 0, resultData.length);
-                            if (channel.isWritable())
-                                channel.write(buffer);
+                            //                       byte[] resultData = result.getData();
+                            //                         ChannelBuffer buffer = HeapChannelBufferFactory.getInstance().getBuffer(resultData, 0, resultData.length);
+//                            if (channel.isWritable())
+                            //                              channel.write(buffer);
 
                             if (result.isEndOfCommunication()) {
                                 log.info("<SERVER> Remote server closed the connection : " + connectionId);
@@ -218,8 +220,7 @@ public abstract class NIOServerBase {
         }
 
         protected void sendClose(final IRequestCallback callback) {
-            cancelPoll();
-            sendHttpMessage(configuration, RequestType.CONNECTION_CLOSE, connectionId, null,
+            sendHttpMessage(RequestType.CONNECTION_CLOSE, connectionId, null,
                     new IRequestCallback() {
                         public void onSuccess(CompressedPacket result) {
                             log.info("<CLIENT> Disconnecting application (regular)");

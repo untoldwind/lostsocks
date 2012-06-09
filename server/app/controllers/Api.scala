@@ -49,7 +49,7 @@ object Api extends Controller with Secured with CompressedPacketFormat {
       var userTimeout = parts(2).toInt
       if (userTimeout < 0) userTimeout = 0
 
-      val downQueue = if (parts.size > 3 && "streams" == parts(3)) new QueuedDownStreamReceiver else new QueuedDownStreamReceiver
+      val downQueue = if (parts.size > 3 && "streams" == parts(3)) new QueuedDownStreamReceiver else new EnumeratorDownStreamReceiver
       val connectionActor = Akka.system.actorOf(Props(new ConnectionActor(host, port, downQueue)))
 
       try {
