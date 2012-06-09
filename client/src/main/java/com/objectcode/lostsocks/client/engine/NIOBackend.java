@@ -17,17 +17,21 @@ public class NIOBackend {
     private final Executor workerExecutor = Executors.newCachedThreadPool();
     private final Timer timer = new HashedWheelTimer();
 
+    private final ClientBootstrap clientBootstrap = new ClientBootstrap(
+            new NioClientSocketChannelFactory(bossExecutor, workerExecutor));
+
+    private final ServerBootstrap serverBootstrap = new ServerBootstrap(
+            new NioServerSocketChannelFactory(bossExecutor, workerExecutor));
+
     public Timer getTimer() {
         return timer;
     }
 
-    public ClientBootstrap createClient() {
-        return new ClientBootstrap(
-                new NioClientSocketChannelFactory(bossExecutor, workerExecutor));
+    public ClientBootstrap getClient() {
+        return clientBootstrap;
     }
 
-    public ServerBootstrap createServer() {
-        return new ServerBootstrap(
-                new NioServerSocketChannelFactory(bossExecutor, workerExecutor));
+    public ServerBootstrap getServer() {
+        return serverBootstrap;
     }
 }

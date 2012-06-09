@@ -214,7 +214,7 @@ public class PropertyFileConfiguration implements IConfiguration {
     /**
      * @return Returns the port.
      */
-    public int getPort() {
+    public int getSocksPort() {
 
         return m_port;
     }

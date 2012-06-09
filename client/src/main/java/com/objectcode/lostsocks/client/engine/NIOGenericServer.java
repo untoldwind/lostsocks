@@ -31,7 +31,7 @@ public class NIOGenericServer {
         this.configuration = configuration;
         this.tunnel = tunnel;
 
-        bootstrap = NIOBackend.INSTANCE.createServer();
+        bootstrap = NIOBackend.INSTANCE.getServer();
 
         bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
             public ChannelPipeline getPipeline() throws Exception {
@@ -58,9 +58,13 @@ public class NIOGenericServer {
         binding = null;
     }
 
-    private class GenericServerHandler extends SimpleChannelUpstreamHandler {
-        @Override
-        public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+    private class GenericServerHandler extends SimpleChannelUpstreamHandler implements TimerTask {
+        String connectionId;
+        Channel channel;
+
+        Timeout timeout;
+
+        public GenericServerHandler() {
             String destinationUri = tunnel.getDestinationUri();
 
             log.info("<CLIENT> An application asked a connection to " + destinationUri);
@@ -71,11 +75,8 @@ public class NIOGenericServer {
                 CompressedPacket connectionCreateResult = ThreadCommunication.sendHttpMessage(configuration, RequestType.CONNECTION_CREATE, null, connectionCreate);
                 if (connectionCreateResult != null) {
                     String data[] = connectionCreateResult.getDataAsString().split(":");
-                    String connectionId = data[0];
+                    connectionId = data[0];
                     log.info("<SERVER> Connection created : " + connectionId);
-                    ProxyInfo proxyInfo = new ProxyInfo(connectionId, e.getChannel());
-                    e.getChannel().setAttachment(proxyInfo);
-                    proxyInfo.schedulePoll();
                 } else {
                     log.error("<SERVER> Connection creation failed");
                 }
@@ -83,15 +84,22 @@ public class NIOGenericServer {
                 log.error("<CLIENT> Cannot initiate a dialog with SERVER. Exception : " + ex, ex);
                 return;
             }
+
+        }
+
+        @Override
+        public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+            String destinationUri = tunnel.getDestinationUri();
+
+            channel = e.getChannel();
+            schedulePoll();
             super.channelConnected(ctx, e);
         }
 
         @Override
         public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-            ProxyInfo proxyInfo = (ProxyInfo) e.getChannel().getAttachment();
-
-            if (proxyInfo != null) {
-                proxyInfo.sendClose();
+            if (channel != null) {
+                sendClose();
             } else
                 log.error("Dont know anything about  " + e.getChannel());
             super.channelDisconnected(ctx, e);    //To change body of overridden methods use File | Settings | File Templates.
@@ -100,25 +108,13 @@ public class NIOGenericServer {
         @Override
         public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
             ChannelBuffer data = (ChannelBuffer) e.getMessage();
-            ProxyInfo proxyInfo = (ProxyInfo) e.getChannel().getAttachment();
 
-            if (proxyInfo != null) {
-                proxyInfo.cancelPoll();
-                proxyInfo.sendRequest(data);
-                proxyInfo.schedulePoll();
+            if (channel != null) {
+                cancelPoll();
+                sendRequest(data);
+                schedulePoll();
             } else
                 log.error("Dont know anything about  " + e.getChannel());
-        }
-    }
-
-    private class ProxyInfo implements TimerTask {
-        private final Channel channel;
-        private final String connectionId;
-        private Timeout timeout;
-
-        private ProxyInfo(String connectionId, Channel channel) {
-            this.connectionId = connectionId;
-            this.channel = channel;
         }
 
         void schedulePoll() {

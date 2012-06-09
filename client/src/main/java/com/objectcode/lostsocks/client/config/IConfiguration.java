@@ -25,7 +25,7 @@ public interface IConfiguration {
 
     public boolean isRequestOnlyIfClientActivity();
 
-    public int getPort();
+    public int getSocksPort();
 
     public URL getUrl();
 

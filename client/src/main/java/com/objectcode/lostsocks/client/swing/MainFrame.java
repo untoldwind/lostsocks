@@ -1,28 +1,14 @@
 package com.objectcode.lostsocks.client.swing;
 
 import com.objectcode.lostsocks.client.config.IConfiguration;
-import com.objectcode.lostsocks.client.config.Tunnel;
-import com.objectcode.lostsocks.client.engine.GenericConnectionServer;
 import com.objectcode.lostsocks.client.engine.SocksConnectionServer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
+import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-
-import java.awt.BorderLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -54,8 +40,6 @@ public class MainFrame extends JFrame
   private               TunnelsTableModel          m_tunnelTableModel;
 
   private SocksConnectionServer m_socksServer;
-
-  private               GenericConnectionServer[]  m_tunnelServers;
 
   private               IConfiguration             m_configuration;
 
@@ -136,23 +120,6 @@ public class MainFrame extends JFrame
     m_configuration.setPassword( new String( m_passwordField.getPassword() ) );
 
     m_configuration.save();
-  }
-
-
-  /**
-   * Description of the Method
-   */
-  public void start()
-  {
-    // Start the generic servers (direct tunneling)
-    Tunnel[]  tunnels  = m_configuration.getTunnels();
-    m_tunnelServers = new GenericConnectionServer[tunnels.length];
-    for ( int i = 0; i < tunnels.length; i++ ) {
-      m_tunnelServers[i] = new GenericConnectionServer( tunnels[i], m_configuration );
-      if ( tunnels[i].getDestinationUri().length() > 0 ) {
-        m_tunnelServers[i].start();
-      }
-    }
   }
 
 

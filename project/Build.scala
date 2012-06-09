@@ -19,16 +19,21 @@ object ApplicationBuild extends Build {
   ) aggregate(client, server)
 
   lazy val client = Project(id = "client", base = file("client"),
-    settings = buildSettings ++ assemblySettings ++ addArtifact(Artifact("client", "assembly"), assembly) ).settings(
+    settings = buildSettings ++ assemblySettings ++ addArtifact(Artifact("client", "assembly"), assembly)).settings(
     organization := "com.objectcode.lostsocks",
     libraryDependencies ++= Seq(
       "org.apache.httpcomponents" % "httpclient" % "4.2",
-      "io.netty" % "netty" % "3.5.0.Final"
+      "io.netty" % "netty" % "3.3.0.Final",
+      ("com.ning" % "async-http-client" % "1.7.0" notTransitive())
+        .exclude("org.jboss.netty", "netty")
     ),
     crossPaths := false,
     unmanagedJars in Compile += file(System.getProperty("java.home") + "/lib/javaws.jar"),
-    excludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
-      cp filter { p => p.data.getName == "javaws.jar" || p.data.getName == "scala-library.jar" }
+    excludedJars in assembly <<= (fullClasspath in assembly) map {
+      cp =>
+        cp filter {
+          p => p.data.getName == "javaws.jar" || p.data.getName == "scala-library.jar"
+        }
     },
     mainClass in assembly := Some("com.objectcode.lostsocks.client.Main")
   )

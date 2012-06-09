@@ -81,7 +81,7 @@ public class SocksConnectionServer extends Thread {
     public void run() {
         // Let's start
         try {
-            serverSocket = new ServerSocket(configuration.getPort());
+            serverSocket = new ServerSocket(configuration.getSocksPort());
             serverSocket.setSoTimeout(LISTEN_TIMEOUT);
         } catch (IOException e) {
             log.error("<CLIENT> Unexpected Exception while creating ServerSocket in SocksConnectionServer : ", e);
