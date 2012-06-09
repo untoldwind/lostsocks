@@ -4,34 +4,17 @@ import com.objectcode.lostsocks.client.config.IConfiguration;
 import com.objectcode.lostsocks.client.config.Tunnel;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.HeapChannelBufferFactory;
 import org.jboss.netty.channel.*;
-import org.jboss.netty.util.Timeout;
-import org.jboss.netty.util.TimerTask;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.util.concurrent.TimeUnit;
-
-public class NIOGenericServer {
+public class NIOGenericServer extends NIOServerBase {
     private static final Log log = LogFactory.getLog(NIOGenericServer.class);
 
-    private final ServerBootstrap bootstrap;
-
-    private final IConfiguration configuration;
     private final Tunnel tunnel;
 
-    private Channel binding;
-
     public NIOGenericServer(Tunnel tunnel, IConfiguration configuration) {
-
-        this.configuration = configuration;
+        super(configuration, tunnel.getLocalPort());
         this.tunnel = tunnel;
-
-        bootstrap = NIOBackend.INSTANCE.getServer();
 
         bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
             public ChannelPipeline getPipeline() throws Exception {
@@ -40,69 +23,18 @@ public class NIOGenericServer {
         });
     }
 
-    public void start() {
-        if (configuration.isListenOnlyLocalhost()) {
-            try {
-                binding = bootstrap.bind(new InetSocketAddress(InetAddress.getLocalHost(), tunnel.getLocalPort()));
-            } catch (UnknownHostException e) {
-                log.error("Failed to bind to localhost", e);
-            }
-        }
-        if (binding == null) {
-            binding = bootstrap.bind(new InetSocketAddress(tunnel.getLocalPort()));
-        }
-    }
-
-    public void stop() {
-        binding.unbind();
-        binding = null;
-    }
-
-    private class GenericServerHandler extends SimpleChannelUpstreamHandler implements TimerTask {
-        String connectionId;
-        Channel channel;
-
-        Timeout timeout;
-
+    private class GenericServerHandler extends ServerHandlerBase {
         public GenericServerHandler() {
             String destinationUri = tunnel.getDestinationUri();
 
-            log.info("<CLIENT> An application asked a connection to " + destinationUri);
-
-            CompressedPacket connectionCreate = new CompressedPacket(destinationUri + ":" + configuration.getTimeout(), false);
-            try {
-                log.info("<CLIENT> SERVER, create a connection to " + destinationUri);
-                CompressedPacket connectionCreateResult = ThreadCommunication.sendHttpMessage(configuration, RequestType.CONNECTION_CREATE, null, connectionCreate);
-                if (connectionCreateResult != null) {
-                    String data[] = connectionCreateResult.getDataAsString().split(":");
-                    connectionId = data[0];
-                    log.info("<SERVER> Connection created : " + connectionId);
-                } else {
-                    log.error("<SERVER> Connection creation failed");
-                }
-            } catch (Exception ex) {
-                log.error("<CLIENT> Cannot initiate a dialog with SERVER. Exception : " + ex, ex);
-                return;
-            }
-
+            sendConnectionRequset(destinationUri);
         }
 
         @Override
         public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-            String destinationUri = tunnel.getDestinationUri();
-
             channel = e.getChannel();
             schedulePoll();
             super.channelConnected(ctx, e);
-        }
-
-        @Override
-        public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-            if (channel != null) {
-                sendClose();
-            } else
-                log.error("Dont know anything about  " + e.getChannel());
-            super.channelDisconnected(ctx, e);    //To change body of overridden methods use File | Settings | File Templates.
         }
 
         @Override
@@ -111,61 +43,12 @@ public class NIOGenericServer {
 
             if (channel != null) {
                 cancelPoll();
-                sendRequest(data);
-                schedulePoll();
+                if (sendRequest(data))
+                    schedulePoll();
             } else
                 log.error("Dont know anything about  " + e.getChannel());
         }
 
-        void schedulePoll() {
-            if (timeout != null)
-                timeout.cancel();
-            timeout = NIOBackend.INSTANCE.getTimer().newTimeout(this, configuration.getDelay(), TimeUnit.MILLISECONDS);
-        }
-
-        void cancelPoll() {
-            if (timeout != null)
-                timeout.cancel();
-        }
-
-        public void run(Timeout timeout) throws Exception {
-            sendRequest(null);
-            schedulePoll();
-        }
-
-        synchronized void sendRequest(ChannelBuffer data) {
-            CompressedPacket connectionRequset = new CompressedPacket(data != null ? data.array() : new byte[0], false);
-            CompressedPacket connectionResult = ThreadCommunication.sendHttpMessage(configuration, RequestType.CONNECTION_REQUEST, connectionId, connectionRequset);
-
-            if (connectionResult == null) {
-                log.error("<CLIENT> Server in error,  disconnecting application");
-                channel.close();
-                cancelPoll();
-            } else {
-
-                byte[] resultData = connectionResult.getData();
-                ChannelBuffer buffer = HeapChannelBufferFactory.getInstance().getBuffer(resultData, 0, resultData.length);
-                channel.write(buffer);
-
-                if (connectionResult.isEndOfCommunication()) {
-                    log.info("<SERVER> Remote server closed the connection : " + connectionId);
-
-                    log.info("<CLIENT> Disconnecting application (regular)");
-                    channel.close();
-                    cancelPoll();
-                }
-            }
-        }
-
-        synchronized void sendClose() {
-            CompressedPacket connectionCloseResult = ThreadCommunication.sendHttpMessage(configuration, RequestType.CONNECTION_CLOSE, connectionId, null);
-
-            if (connectionCloseResult == null) {
-                log.error("<CLIENT> SERVER fail closing");
-            }
-            log.info("<CLIENT> Disconnecting application (regular)");
-            cancelPoll();
-        }
     }
 
 }

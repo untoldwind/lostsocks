@@ -1,7 +1,7 @@
 package com.objectcode.lostsocks.client.swing;
 
 import com.objectcode.lostsocks.client.config.IConfiguration;
-import com.objectcode.lostsocks.client.engine.SocksConnectionServer;
+import com.objectcode.lostsocks.client.engine.NIOSocksServer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -39,7 +39,7 @@ public class MainFrame extends JFrame
   private               JTable                     m_tunnelTable;
   private               TunnelsTableModel          m_tunnelTableModel;
 
-  private SocksConnectionServer m_socksServer;
+  private NIOSocksServer m_socksServer;
 
   private               IConfiguration             m_configuration;
 
@@ -197,7 +197,7 @@ public class MainFrame extends JFrame
     {
       updateConfiguration();
 
-      m_socksServer = new SocksConnectionServer( m_configuration );
+      m_socksServer = new NIOSocksServer( m_configuration );
       if ( !m_socksServer.checkServerVersion() ) {
         JOptionPane.showMessageDialog( MainFrame.this, "Sock to HTTP server is different version", "Version Error", JOptionPane.ERROR_MESSAGE );
         return;
@@ -225,7 +225,7 @@ public class MainFrame extends JFrame
      */
     public void actionPerformed( ActionEvent e )
     {
-      m_socksServer.close();
+      m_socksServer.stop();
       m_stopSocksButton.setEnabled( false );
       m_startSocksButton.setEnabled( true );
     }

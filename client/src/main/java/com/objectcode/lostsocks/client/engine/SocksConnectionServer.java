@@ -45,7 +45,7 @@ public class SocksConnectionServer extends Thread {
     public boolean listening = true;
     private IConfiguration configuration = null;
 
-    public SocksConnectionServer(IConfiguration configuration) {
+    private SocksConnectionServer(IConfiguration configuration) {
         super();
         this.configuration = configuration;
     }
