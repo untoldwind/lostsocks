@@ -195,7 +195,8 @@ public abstract class NIOServerBase {
                         public void onSuccess(CompressedPacket result) {
                             byte[] resultData = result.getData();
                             ChannelBuffer buffer = HeapChannelBufferFactory.getInstance().getBuffer(resultData, 0, resultData.length);
-                            channel.write(buffer);
+                            if (channel.isWritable())
+                                channel.write(buffer);
 
                             if (result.isEndOfCommunication()) {
                                 log.info("<SERVER> Remote server closed the connection : " + connectionId);
