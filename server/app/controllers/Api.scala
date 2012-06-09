@@ -7,7 +7,7 @@ import models.{ConnectionTable, IdGenerator, CompressedPacket}
 import utils.IPHelper
 import play.api.Logger
 import play.api.libs.concurrent.Akka
-import engine.{ConnectionActor, Connection, ExtendedConnection}
+import engine.{ConnectionActor, ExtendedConnection}
 import akka.actor.Props
 import akka.util.duration._
 import akka.pattern._

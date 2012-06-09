@@ -145,7 +145,7 @@ public class ThreadCommunication extends Thread {
                 log.error("<SERVER> Connection creation failed");
             }
         } catch (Exception e) {
-            log.error("<CLIENT> Cannot initiate a dialog with SERVER. Exception : " + e);
+            log.error("<CLIENT> Cannot initiate a dialog with SERVER. Exception : " + e, e);
             return;
         }
     }

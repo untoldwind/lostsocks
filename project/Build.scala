@@ -23,7 +23,7 @@ object ApplicationBuild extends Build {
     organization := "com.objectcode.lostsocks",
     libraryDependencies ++= Seq(
       "org.apache.httpcomponents" % "httpclient" % "4.2",
-      "io.netty" % "netty" % "3.3.0.Final"
+      "io.netty" % "netty" % "3.5.0.Final"
     ),
     crossPaths := false,
     unmanagedJars in Compile += file(System.getProperty("java.home") + "/lib/javaws.jar"),

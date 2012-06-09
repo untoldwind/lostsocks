@@ -2,10 +2,9 @@ package com.objectcode.lostsocks.client.swing;
 
 import com.objectcode.lostsocks.client.config.IConfiguration;
 import com.objectcode.lostsocks.client.config.Tunnel;
-import com.objectcode.lostsocks.client.engine.GenericConnectionServer;
+import com.objectcode.lostsocks.client.engine.NIOGenericServer;
 
 import javax.swing.table.AbstractTableModel;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -219,7 +218,7 @@ public class TunnelsTableModel extends AbstractTableModel
   private static class TunnelElement
   {
     Tunnel                   m_tunnel;
-    GenericConnectionServer m_tunnelServer;
+    NIOGenericServer m_tunnelServer;
 
 
     /**
@@ -245,7 +244,7 @@ public class TunnelsTableModel extends AbstractTableModel
     /**
      * @return   Returns the tunnelServer.
      */
-    public GenericConnectionServer getTunnelServer()
+    public NIOGenericServer getTunnelServer()
     {
       return m_tunnelServer;
     }
@@ -259,7 +258,7 @@ public class TunnelsTableModel extends AbstractTableModel
     public void start( IConfiguration configuration )
     {
       if ( m_tunnel.getDestinationUri().length() > 0 ) {
-        m_tunnelServer = new GenericConnectionServer( m_tunnel, configuration );
+        m_tunnelServer = new NIOGenericServer( m_tunnel, configuration );
         m_tunnelServer.start();
       }
     }
@@ -271,7 +270,7 @@ public class TunnelsTableModel extends AbstractTableModel
     public void stop()
     {
       if ( m_tunnelServer != null ) {
-        m_tunnelServer.close();
+        m_tunnelServer.stop();
         m_tunnelServer = null;
       }
     }

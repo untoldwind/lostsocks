@@ -8,3 +8,5 @@ resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/release
 addSbtPlugin("play" % "sbt-plugin" % "2.0.1")
 
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.7.2")
+
+addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.0.0")
