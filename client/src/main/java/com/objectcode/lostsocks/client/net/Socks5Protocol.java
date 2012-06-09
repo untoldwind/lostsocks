@@ -1,5 +1,7 @@
 package com.objectcode.lostsocks.client.net;
 
+import com.objectcode.lostsocks.client.engine.CompressedPacket;
+import com.objectcode.lostsocks.client.engine.IRequestCallback;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.HeapChannelBufferFactory;
 
@@ -129,25 +131,29 @@ public class Socks5Protocol extends SocksProtocol {
         }
     }
 
-    private void connectIPv4(ChannelBuffer msg, ISocksProtocolCallback callback) {
+    private void connectIPv4(ChannelBuffer msg, final ISocksProtocolCallback callback) {
         if (msg.capacity() < 10)
             throw new RuntimeException("Protocol error");
 
-        byte[] ipBytes = new byte[4];
-        byte[] portBytes = new byte[2];
+        final byte[] ipBytes = new byte[4];
+        final byte[] portBytes = new byte[2];
 
         msg.getBytes(4, ipBytes);
         msg.getBytes(8, portBytes);
 
         int port = (((0xFF & msg.getByte(8)) << 8) + (0xFF & msg.getByte(9)));
-        if (callback.connect(b2i(ipBytes[0]) + "." + b2i(ipBytes[1]) + "." + b2i(ipBytes[2]) + "." + b2i(ipBytes[3]), port)) {
-            callback.sendResponse(buildResponse(AddressType.IPV4, ResponseCode.SUCCEEDED, ipBytes, portBytes));
-        } else {
-            callback.sendResponse(buildResponse(AddressType.IPV4, ResponseCode.CONNECTION_REFUSED, ipBytes, portBytes));
-        }
+        callback.connect(b2i(ipBytes[0]) + "." + b2i(ipBytes[1]) + "." + b2i(ipBytes[2]) + "." + b2i(ipBytes[3]), port, new IRequestCallback() {
+            public void onSuccess(CompressedPacket result) {
+                callback.sendResponse(buildResponse(AddressType.IPV4, ResponseCode.SUCCEEDED, ipBytes, portBytes));
+            }
+
+            public void onFailure(int statusCode, String statusText) {
+                callback.sendResponse(buildResponse(AddressType.IPV4, ResponseCode.CONNECTION_REFUSED, ipBytes, portBytes));
+            }
+        });
     }
 
-    private void connectDomain(ChannelBuffer msg, ISocksProtocolCallback callback) {
+    private void connectDomain(ChannelBuffer msg, final ISocksProtocolCallback callback) {
         if (msg.capacity() < 5)
             throw new RuntimeException("Protocol error");
 
@@ -158,16 +164,20 @@ public class Socks5Protocol extends SocksProtocol {
         byte[] domain = new byte[cnt];
         msg.getBytes(5, domain);
 
-        byte[] portBytes = new byte[2];
+        final byte[] portBytes = new byte[2];
 
         msg.getBytes(5 + cnt, portBytes);
 
         int port = (((0xFF & msg.getByte(5 + cnt)) << 8) + (0xFF & msg.getByte(5 + cnt + 1)));
-        if (callback.connect(new String(domain), port)) {
-            callback.sendResponse(buildResponse(AddressType.IPV4, ResponseCode.SUCCEEDED, new byte[4], portBytes));
-        } else {
-            callback.sendResponse(buildResponse(AddressType.IPV4, ResponseCode.CONNECTION_REFUSED, new byte[4], portBytes));
-        }
+        callback.connect(new String(domain), port, new IRequestCallback() {
+            public void onSuccess(CompressedPacket result) {
+                callback.sendResponse(buildResponse(AddressType.IPV4, ResponseCode.SUCCEEDED, new byte[4], portBytes));
+            }
+
+            public void onFailure(int statusCode, String statusText) {
+                callback.sendResponse(buildResponse(AddressType.IPV4, ResponseCode.CONNECTION_REFUSED, new byte[4], portBytes));
+            }
+        });
     }
 
     private boolean isBindRequest(ChannelBuffer msg) {

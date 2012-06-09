@@ -46,18 +46,30 @@ public class NIOSocksServer extends NIOServerBase {
                         e.getChannel().write(response);
                     }
 
-                    public boolean connect(String hostOrIP, int port) {
-                        if (sendConnectionRequset(hostOrIP + ":" + port)) {
-                            schedulePoll();
-                            return true;
-                        }
-                        return false;
+                    public void connect(String hostOrIP, int port, final IRequestCallback callback) {
+                        sendConnectionRequest(hostOrIP + ":" + port, new IRequestCallback() {
+                            public void onSuccess(CompressedPacket result) {
+                                schedulePoll();
+                                callback.onSuccess(result);
+                            }
+
+                            public void onFailure(int statusCode, String statusText) {
+                                callback.onFailure(statusCode, statusText);
+                            }
+                        });
                     }
                 });
             } else {
                 cancelPoll();
-                if (sendRequest(msg))
-                    schedulePoll();
+                sendRequest(msg, new IRequestCallback() {
+                    public void onSuccess(CompressedPacket result) {
+                        if (!result.isEndOfCommunication())
+                            schedulePoll();
+                    }
+
+                    public void onFailure(int statusCode, String statusText) {
+                    }
+                });
             }
         }
     }

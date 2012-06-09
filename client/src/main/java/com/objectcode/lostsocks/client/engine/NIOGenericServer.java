@@ -25,15 +25,22 @@ public class NIOGenericServer extends NIOServerBase {
 
     private class GenericServerHandler extends ServerHandlerBase {
         public GenericServerHandler() {
-            String destinationUri = tunnel.getDestinationUri();
-
-            sendConnectionRequset(destinationUri);
         }
 
         @Override
-        public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-            channel = e.getChannel();
-            schedulePoll();
+        public void channelConnected(final ChannelHandlerContext ctx, final ChannelStateEvent e) throws Exception {
+            String destinationUri = tunnel.getDestinationUri();
+
+            sendConnectionRequest(destinationUri, new IRequestCallback() {
+                public void onSuccess(CompressedPacket result) {
+                    channel = e.getChannel();
+                    schedulePoll();
+                }
+
+                public void onFailure(int statusCode, String statusText) {
+                    e.getChannel().close();
+                }
+            });
             super.channelConnected(ctx, e);
         }
 
@@ -43,8 +50,15 @@ public class NIOGenericServer extends NIOServerBase {
 
             if (channel != null) {
                 cancelPoll();
-                if (sendRequest(data))
-                    schedulePoll();
+                sendRequest(data, new IRequestCallback() {
+                    public void onSuccess(CompressedPacket result) {
+                        if (!result.isEndOfCommunication())
+                            schedulePoll();
+                    }
+
+                    public void onFailure(int statusCode, String statusText) {
+                    }
+                });
             } else
                 log.error("Dont know anything about  " + e.getChannel());
         }
