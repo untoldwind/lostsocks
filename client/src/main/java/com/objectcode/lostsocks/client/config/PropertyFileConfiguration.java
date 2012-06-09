@@ -1,24 +1,18 @@
 package com.objectcode.lostsocks.client.config;
 
+import com.ning.http.client.AsyncHttpClient;
+import com.ning.http.client.AsyncHttpClientConfig;
+import com.ning.http.client.ProxyServer;
+import com.ning.http.client.Realm;
+import com.ning.http.client.providers.netty.NettyAsyncHttpProvider;
 import com.objectcode.lostsocks.client.utils.PropertiesHelper;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.auth.params.AuthPNames;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.params.AuthPolicy;
-import org.apache.http.conn.params.ConnRoutePNames;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.PoolingClientConnectionManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 
 /**
@@ -26,7 +20,7 @@ import java.util.Properties;
  * @created 28. Mai 2004
  */
 public class PropertyFileConfiguration implements IConfiguration {
-    private final static Log log = LogFactory.getLog(PropertyFileConfiguration.class);
+    private static final Logger log = LoggerFactory.getLogger(PropertyFileConfiguration.class);
 
     // Socks server settings
     private int m_port = 1080;
@@ -82,9 +76,7 @@ public class PropertyFileConfiguration implements IConfiguration {
 
     private boolean m_configurationChanged = false;
 
-    private HttpClient m_httpClient;
-
-    private HttpHost m_targetHost;
+    private AsyncHttpClient m_httpClient;
 
     private String m_targetPath;
 
@@ -122,14 +114,15 @@ public class PropertyFileConfiguration implements IConfiguration {
         m_urlString = url;
         try {
             if (m_urlString != null) {
+                if (m_urlString.endsWith("/"))
+                    m_urlString = m_urlString.substring(0, m_urlString.length() - 1);
                 m_url = new URL(m_urlString);
             } else {
                 m_url = null;
             }
-            m_targetHost = null;
             m_targetPath = null;
         } catch (Exception e) {
-            log.fatal("Exception", e);
+            log.error("Exception", e);
         }
     }
 
@@ -348,7 +341,7 @@ public class PropertyFileConfiguration implements IConfiguration {
             m_configurationChanged = true;
             m_httpClient = null;
         }
-        m_proxyPassword = proxyPassword;
+        m_proxyPassword = proxyPassword != null && proxyPassword.length() > 0 ? proxyPassword : null;
     }
 
     /**
@@ -372,7 +365,7 @@ public class PropertyFileConfiguration implements IConfiguration {
             m_configurationChanged = true;
             m_httpClient = null;
         }
-        m_proxyUser = proxyUser;
+        m_proxyUser = proxyUser != null && proxyUser.length() > 0 ? proxyUser : null;
     }
 
     /**
@@ -387,57 +380,33 @@ public class PropertyFileConfiguration implements IConfiguration {
         m_useProxy = useProxy;
     }
 
-    public HttpHost getTargetHost() {
-        if (m_targetHost == null) {
-            m_targetHost = new HttpHost(m_url.getHost(), m_url.getPort(), m_url.getProtocol());
-            m_targetPath = m_url.getPath();
-            if (m_targetPath.endsWith("/"))
-                m_targetPath = m_targetPath.substring(0, m_targetPath.length() - 1);
-        }
-        return m_targetHost;
-    }
-
-    public String getTargetPath() {
-        if (m_targetPath == null) {
-            m_targetHost = new HttpHost(m_url.getHost(), m_url.getPort(), m_url.getProtocol());
-            m_targetPath = m_url.getPath();
-            if (m_targetPath.endsWith("/"))
-                m_targetPath = m_targetPath.substring(0, m_targetPath.length() - 1);
-        }
-        return m_targetPath;
-    }
-
-    public HttpClient createHttpClient() {
+    public AsyncHttpClient createHttpClient() {
 
         if (m_httpClient == null) {
             synchronized (this) {
-                PoolingClientConnectionManager clientConnectionManager = new PoolingClientConnectionManager();
-                DefaultHttpClient httpClient = new DefaultHttpClient(clientConnectionManager);
-
-                httpClient.getCredentialsProvider().setCredentials(
-                        new AuthScope(getTargetHost().getHostName(), getTargetHost().getPort()),
-                        new UsernamePasswordCredentials(m_user, m_password));
+                AsyncHttpClientConfig.Builder configBuilder = new AsyncHttpClientConfig.Builder();
 
                 if (m_useProxy) {
-                    HttpHost proxy = new HttpHost(m_proxyHost, Integer.parseInt(m_proxyPort));
-                    httpClient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, proxy);
-                    if (m_proxyNeedsAuthentication) {
-                        List<String> authpref = new ArrayList<String>();
-                        authpref.add(AuthPolicy.BASIC);
-                        authpref.add(AuthPolicy.DIGEST);
-                        httpClient.getParams().setParameter(AuthPNames.PROXY_AUTH_PREF,
-                                authpref);
-                        httpClient.getCredentialsProvider().setCredentials(
-                                new AuthScope(proxy.getHostName(), proxy.getPort()),
-                                new UsernamePasswordCredentials(m_proxyUser, m_proxyPassword));
+                    ProxyServer proxyServer = new ProxyServer(m_proxyHost, Integer.parseInt(m_proxyPort), m_proxyUser, m_proxyPassword);
 
-                    }
+                    configBuilder = configBuilder.setProxyServer(proxyServer);
                 }
-                m_httpClient = httpClient;
+                configBuilder.setMaxRequestRetry(3);
+                NettyAsyncHttpProvider provider = new NettyAsyncHttpProvider(configBuilder.build());
+                m_httpClient = new AsyncHttpClient(provider, configBuilder.build());
             }
         }
 
         return m_httpClient;
+    }
+
+    public Realm getRealm() {
+        Realm.RealmBuilder builder = new Realm.RealmBuilder();
+        builder.setScheme(Realm.AuthScheme.BASIC);
+        builder.setPrincipal(m_user);
+        builder.setPassword(m_password);
+
+        return builder.build();
     }
 
     /**
@@ -454,7 +423,7 @@ public class PropertyFileConfiguration implements IConfiguration {
 
             m_configurationChanged = false;
         } catch (Exception e) {
-            log.fatal("Exception", e);
+            log.error("Exception", e);
         }
     }
 
@@ -469,7 +438,7 @@ public class PropertyFileConfiguration implements IConfiguration {
         try {
             m_url = new URL(m_urlString);
         } catch (Exception e) {
-            log.fatal("Exception", e);
+            log.error("Exception", e);
         }
         m_port = PropertiesHelper.getInt(properties, "socks.server.port", m_port);
 
@@ -527,7 +496,7 @@ public class PropertyFileConfiguration implements IConfiguration {
         try {
             properties.store(new FileOutputStream(m_configurationFile), "Sock to HTTP");
         } catch (Exception e) {
-            log.fatal("Exception", e);
+            log.error("Exception", e);
         }
         m_configurationChanged = false;
     }

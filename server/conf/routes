@@ -29,4 +29,5 @@ POST    /admin/users/:id            controllers.admin.Users.update(id:Long)
 POST    /api/versionCheck           controllers.Api.versionCheck
 POST    /api/connections            controllers.Api.connectionCreate
 PUT     /api/connections/:id        controllers.Api.connectionRequest(id:String)
+GET     /api/connections/:id        controllers.Api.connectionGet(id:String)
 DELETE  /api/connections/:id        controllers.Api.connectionClose(id:String)

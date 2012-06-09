@@ -2,13 +2,13 @@ package com.objectcode.lostsocks.client.engine;
 
 import com.objectcode.lostsocks.client.config.IConfiguration;
 import com.objectcode.lostsocks.client.config.Tunnel;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NIOGenericServer extends NIOServerBase {
-    private static final Log log = LogFactory.getLog(NIOGenericServer.class);
+    private static final Logger log = LoggerFactory.getLogger(NIOGenericServer.class);
 
     private final Tunnel tunnel;
 

@@ -1,13 +1,11 @@
 package com.objectcode.lostsocks.client.engine;
 
+import com.ning.http.client.AsyncHttpClient;
+import com.ning.http.client.Request;
+import com.ning.http.client.RequestBuilder;
+import com.ning.http.client.Response;
 import com.objectcode.lostsocks.client.Constants;
 import com.objectcode.lostsocks.client.config.IConfiguration;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.HeapChannelBufferFactory;
@@ -17,15 +15,16 @@ import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.util.Timeout;
 import org.jboss.netty.util.TimerTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.concurrent.TimeUnit;
 
 public abstract class NIOServerBase {
-    private static final Log log = LogFactory.getLog(NIOServerBase.class);
+    private static final Logger log = LoggerFactory.getLogger(NIOServerBase.class);
 
     protected final ServerBootstrap bootstrap;
 
@@ -79,36 +78,33 @@ public abstract class NIOServerBase {
                     log.info("<SERVER> Version check : OK");
                 return true;
             } else {
-                log.fatal("<SERVER> Version not supported. Version needed : " + id);
+                log.error("<SERVER> Version not supported. Version needed : " + id);
 
                 return false;
             }
         } catch (Exception e) {
-            log.fatal("<CLIENT> Version check : Cannot check the server version. Exception : ", e);
+            log.error("<CLIENT> Version check : Cannot check the server version. Exception : ", e);
             return (false);
         }
     }
 
 
     public static CompressedPacket sendHttpMessage(IConfiguration config, RequestType requestType, String connectionId, CompressedPacket input) {
-        HttpClient client = config.createHttpClient();
+        AsyncHttpClient client = config.createHttpClient();
 
-        HttpRequest request = requestType.getHttpRequest(config.getTargetPath(), connectionId, input != null ? input.toEntity() : null);
+        RequestBuilder requestBuilder = requestType.getHttpRequest(config.getUrlString(), connectionId, input != null ? input.toBody() : null);
+        requestBuilder.setRealm(config.getRealm());
+        Request request = requestBuilder.build();
+        try {
+            Response response = client.executeRequest(request).get(5, TimeUnit.SECONDS);
 
-        for (int retry = 0; retry <= config.getMaxRetries(); retry++) {
-            try {
-                HttpResponse response = client.execute(config.getTargetHost(), request);
-
-                if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                    return CompressedPacket.fromEntity(response.getEntity());
-                }
-                log.error("Failed request (try #" + retry + ") " + request.getRequestLine().getMethod() + " " + request.getRequestLine().getUri() + " Status: " + response.getStatusLine());
-            } catch (IOException e) {
-                log.error("IOException (try #" + retry + ") " + e, e);
-                return null;
+            if (response.getStatusCode() == 200) {
+                return CompressedPacket.fromStream(response.getResponseBodyAsStream());
             }
+            log.error("<CLIENT> Failed request " + request.getUrl() + " " + response.getStatusCode() + " " + response.getStatusText());
+        } catch (Exception e) {
+            log.error("Exception " + e, e);
         }
-        log.error("<CLIENT> The maximum number of retries has been done");
         return null;
     }
 

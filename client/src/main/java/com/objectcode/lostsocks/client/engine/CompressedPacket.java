@@ -1,26 +1,17 @@
 package com.objectcode.lostsocks.client.engine;
 
-import com.objectcode.lostsocks.client.config.PropertyFileConfiguration;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.entity.ContentType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class CompressedPacket {
-    private final static Log log = LogFactory.getLog(PropertyFileConfiguration.class);
+    private static final Logger log = LoggerFactory.getLogger(CompressedPacket.class);
 
     private final byte[] data;
     private final boolean endOfCommunication;
-
-    private final ContentType CONTENT_TYPE = ContentType.create("application/x-compressed-bytes");
 
     public CompressedPacket(byte[] data, boolean endOfCommunication) {
         this.data = data;
@@ -55,7 +46,7 @@ public class CompressedPacket {
         return endOfCommunication;
     }
 
-    public HttpEntity toEntity() {
+    public byte[] toBody() {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             GZIPOutputStream zos = new GZIPOutputStream(bos);
@@ -65,16 +56,17 @@ public class CompressedPacket {
             dos.writeBoolean(endOfCommunication);
             dos.flush();
             dos.close();
-            return new ByteArrayEntity(bos.toByteArray(), CONTENT_TYPE);
+            return bos.toByteArray();
         } catch (Exception e) {
             log.error("Encoding problem " + e, e);
             throw new RuntimeException(e);
         }
     }
 
-    public static CompressedPacket fromEntity(HttpEntity entity) {
+
+    public static CompressedPacket fromStream(InputStream in) {
         try {
-            GZIPInputStream gis = new GZIPInputStream(entity.getContent());
+            GZIPInputStream gis = new GZIPInputStream(in);
             DataInputStream dis = new DataInputStream(gis);
             int length = dis.readInt();
             byte[] data = new byte[length];
@@ -88,4 +80,5 @@ public class CompressedPacket {
             throw new RuntimeException(e);
         }
     }
+
 }

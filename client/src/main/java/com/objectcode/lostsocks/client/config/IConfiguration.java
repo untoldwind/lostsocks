@@ -1,7 +1,7 @@
 package com.objectcode.lostsocks.client.config;
 
-import org.apache.http.HttpHost;
-import org.apache.http.client.HttpClient;
+import com.ning.http.client.AsyncHttpClient;
+import com.ning.http.client.Realm;
 
 import java.net.URL;
 
@@ -73,9 +73,7 @@ public interface IConfiguration {
 
     public void save();
 
-    public HttpClient createHttpClient();
+    public AsyncHttpClient createHttpClient();
 
-    public HttpHost getTargetHost();
-
-    public String getTargetPath();
+    public Realm getRealm();
 }

@@ -1,7 +1,7 @@
 package com.objectcode.lostsocks.client.config;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.SecureRandom;
 
@@ -11,7 +11,7 @@ import java.security.SecureRandom;
  */
 public class PasswordEncoder
 {
-  private final static  Log     log     = LogFactory.getLog( PasswordEncoder.class );
+    private static final Logger log = LoggerFactory.getLogger(PasswordEncoder.class);
 
   private final static  byte[]  JIDDER  = new byte[]{
       -122, -103, -49, 116, 69, 23, -101, 15, 28, -97, 33, 3, -108, 119, 38, 25,
@@ -120,7 +120,7 @@ public class PasswordEncoder
       return hex.toString();
     }
     catch ( Exception e ) {
-      log.fatal( "Exception", e );
+      log.error( "Exception", e );
     }
     return "";
   }
@@ -162,7 +162,7 @@ public class PasswordEncoder
       return new String( uftpassword, "UTF-8" );
     }
     catch ( Exception e ) {
-      log.fatal( "Exception", e );
+      log.error( "Exception", e );
     }
     return "";
   }

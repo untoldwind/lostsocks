@@ -2,8 +2,8 @@ package com.objectcode.lostsocks.client.swing;
 
 import com.objectcode.lostsocks.client.config.IConfiguration;
 import com.objectcode.lostsocks.client.engine.NIOSocksServer;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -22,7 +22,7 @@ public class MainFrame extends JFrame
 {
   private static final long serialVersionUID = -5199207523089060681L;
 
-  private final static  Log                        log                   = LogFactory.getLog( MainFrame.class );
+    private static final Logger log = LoggerFactory.getLogger(MainFrame.class);
 
   private final static  String                     PROPERTIES_FILE       = "net.thetorn.stoh.client.init";
 

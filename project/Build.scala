@@ -22,10 +22,12 @@ object ApplicationBuild extends Build {
     settings = buildSettings ++ assemblySettings ++ addArtifact(Artifact("client", "assembly"), assembly)).settings(
     organization := "com.objectcode.lostsocks",
     libraryDependencies ++= Seq(
-      "org.apache.httpcomponents" % "httpclient" % "4.2",
       "io.netty" % "netty" % "3.3.0.Final",
       ("com.ning" % "async-http-client" % "1.7.0" notTransitive())
-        .exclude("org.jboss.netty", "netty")
+        .exclude("org.jboss.netty", "netty"),
+      "org.slf4j" % "slf4j-api" % "1.6.4",
+      "ch.qos.logback" % "logback-core" % "1.0.0",
+      "ch.qos.logback" % "logback-classic" % "1.0.0"
     ),
     crossPaths := false,
     unmanagedJars in Compile += file(System.getProperty("java.home") + "/lib/javaws.jar"),

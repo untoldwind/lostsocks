@@ -17,7 +17,7 @@ object ConnectionActor {
   case class Write(bytes:Array[Byte])
 }
 
-class ConnectionActor(val host: String, val port: Int, val downQueue:LinkedBlockingQueue[Input[ByteString]]) extends Actor {
+class ConnectionActor(val host: String, val port: Int, val downQueue:DownStreamReceiver) extends Actor {
 
   import ConnectionActor._
 
@@ -45,9 +45,9 @@ class ConnectionActor(val host: String, val port: Int, val downQueue:LinkedBlock
       if ( receiver != null )
         receiver ! causeOpt.map(Failure(_)).getOrElse(Failure(new RuntimeException))
       receiver = null
-      downQueue.offer(EOF)
+      downQueue.send(EOF)
 
     case IO.Read(socket, bytes) =>
-      downQueue.offer(El(bytes))
+      downQueue.send(El(bytes))
   }
 }

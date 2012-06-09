@@ -4,13 +4,13 @@ import com.objectcode.lostsocks.client.config.IConfiguration;
 import com.objectcode.lostsocks.client.net.ISocksProtocolCallback;
 import com.objectcode.lostsocks.client.net.SocksProtocol;
 import com.objectcode.lostsocks.client.net.SocksProtocolFactory;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NIOSocksServer extends NIOServerBase {
-    private static final Log log = LogFactory.getLog(NIOSocksServer.class);
+    private static final Logger log = LoggerFactory.getLogger(NIOSocksServer.class);
 
     public NIOSocksServer(IConfiguration configuration) {
         super(configuration, configuration.getSocksPort());

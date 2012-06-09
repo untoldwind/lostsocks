@@ -7,20 +7,14 @@ import models.{ConnectionTable, IdGenerator, CompressedPacket}
 import utils.IPHelper
 import play.api.Logger
 import play.api.libs.concurrent.Akka
-import engine.{ConnectionActor, ExtendedConnection}
 import akka.actor.Props
 import akka.util.duration._
 import akka.pattern._
-import java.util.concurrent.LinkedBlockingQueue
-import play.api.libs.iteratee.Input
 import akka.dispatch.Await
-import akka.actor.Status.{Failure, Success}
-import collection.mutable.ArrayBuffer
-import scala.collection.JavaConversions._
-import java.util.ArrayList
 import akka.util.{ByteString, Timeout}
 import play.api.libs.iteratee.Input.{El, EOF, Empty}
 import engine.ConnectionActor.Disconnect
+import engine._
 
 object Api extends Controller with Secured with CompressedPacketFormat {
   val SERVER_TIMOUT = 120
@@ -55,7 +49,7 @@ object Api extends Controller with Secured with CompressedPacketFormat {
       var userTimeout = parts(2).toInt
       if (userTimeout < 0) userTimeout = 0
 
-      val downQueue = new LinkedBlockingQueue[Input[ByteString]]
+      val downQueue = if (parts.size > 3 && "streams" == parts(3)) new QueuedDownStreamReceiver else new QueuedDownStreamReceiver
       val connectionActor = Akka.system.actorOf(Props(new ConnectionActor(host, port, downQueue)))
 
       try {
@@ -76,7 +70,7 @@ object Api extends Controller with Secured with CompressedPacketFormat {
         }
         extConn.authorizedTime = 0
         extConn.connectionActor = connectionActor
-        extConn.downQueue = downQueue
+        extConn.downStreamReceiver = downQueue
         // Add this to the ConnectionTable
         ConnectionTable(request.user).put(connectionId, extConn)
 
@@ -96,7 +90,7 @@ object Api extends Controller with Secured with CompressedPacketFormat {
           val lastAccessDate = extConn.lastAccessDate
           extConn.lastAccessDate = new java.util.Date()
           val connectionActor = extConn.connectionActor
-          val downQueue = extConn.downQueue
+          val downQueueReceiver = extConn.downStreamReceiver
 
           // Add the sended bytes
           extConn.uploadedBytes += request.body.data.size
@@ -110,15 +104,19 @@ object Api extends Controller with Secured with CompressedPacketFormat {
 
           // Build the response
           var data = ByteString.empty
-          val available = downQueue.size
           var hasEOF = false
+          downQueueReceiver match {
+            case queue: QueuedDownStreamReceiver =>
+              val available = queue.available
 
-          for (i <- 1 to available) {
-            downQueue.take() match {
-              case El(bytes) => data = data ++ bytes
-              case EOF => hasEOF = true
-              case Empty =>
-            }
+              for (i <- 1 to available) {
+                queue.take match {
+                  case El(bytes) => data = data ++ bytes
+                  case EOF => hasEOF = true
+                  case Empty =>
+                }
+              }
+            case _:EnumeratorDownStreamReceiver =>
           }
 
           if (hasEOF) {
@@ -134,6 +132,19 @@ object Api extends Controller with Secured with CompressedPacketFormat {
           extConn.currentDownloadSpeed = data.size.toDouble / div
 
           Ok(CompressedPacket(data.toArray, hasEOF))
+      }.getOrElse(NotFound)
+  }
+
+  def connectionGet(id:String) = BasicAuthenticated {
+    implicit request =>
+      ConnectionTable(request.user).get(id).map {
+        extConn =>
+          extConn.downStreamReceiver match {
+            case enum : EnumeratorDownStreamReceiver =>
+              Ok.stream[Array[Byte]](enum.assignIteratee(_))
+            case _:QueuedDownStreamReceiver =>
+              Ok(CompressedPacket(ByteString.empty.toArray, true))
+          }
       }.getOrElse(NotFound)
   }
 
@@ -157,7 +168,6 @@ object Api extends Controller with Secured with CompressedPacketFormat {
           // Build the response
           Ok(CompressedPacket("Destroyed", true))
       }.getOrElse {
-        println("Again1")
         Logger.info("Connection already destroyed by timeout : " + id)
 
         Ok(CompressedPacket("Already destroyed", true))

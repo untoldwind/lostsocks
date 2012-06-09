@@ -24,5 +24,5 @@ class ExtendedConnection {
   var authorizedTime:Long = 0
 
   var connectionActor:ActorRef = null
-  var downQueue:LinkedBlockingQueue[Input[ByteString]] = null
+  var downStreamReceiver:DownStreamReceiver = null
 }

@@ -1,11 +1,10 @@
 package com.objectcode.lostsocks.client.config;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jnlp.FileContents;
 import javax.jnlp.PersistenceService;
-
 import java.io.FileNotFoundException;
 import java.net.URL;
 import java.util.Properties;
@@ -14,7 +13,7 @@ import java.util.Properties;
  * @author junglas
  */
 public class PersistenceServiceConfiguration extends PropertyFileConfiguration {
-    private final static Log log = LogFactory.getLog(PersistenceServiceConfiguration.class);
+    private static final Logger log = LoggerFactory.getLogger(PersistenceServiceConfiguration.class);
 
     PersistenceService m_persistenceService;
 
@@ -33,7 +32,7 @@ public class PersistenceServiceConfiguration extends PropertyFileConfiguration {
             m_url = new URL(m_codebase, "socks");
             m_urlString = m_url.toString();
         } catch (Exception e) {
-            log.fatal("Exception", e);
+            log.error("Exception", e);
         }
     }
 

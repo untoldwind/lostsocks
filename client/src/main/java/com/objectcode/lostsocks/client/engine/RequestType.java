@@ -1,43 +1,47 @@
 package com.objectcode.lostsocks.client.engine;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpRequest;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
+import com.ning.http.client.RequestBuilder;
+import org.jboss.netty.handler.codec.http.HttpHeaders;
 
 public enum RequestType {
     VERSION_CHECK() {
         @Override
-        public HttpRequest getHttpRequest(String uriBase, String connectionId, HttpEntity data) {
-            HttpPost request = new HttpPost(uriBase + "/api/versionCheck");
-            request.setEntity(data);
-            return request;
+        public RequestBuilder getHttpRequest(String urlBase, String connectionId, byte[] data) {
+            RequestBuilder builder = new RequestBuilder("POST");
+            builder.setUrl(urlBase + "/api/versionCheck");
+            builder.addHeader(HttpHeaders.Names.CONTENT_TYPE, "application/x-compressed-bytes");
+            builder.setBody(data);
+            return builder;
         }
     },
     CONNECTION_CREATE() {
         @Override
-        public HttpRequest getHttpRequest(String uriBase, String connectionId, HttpEntity data) {
-            HttpPost request = new HttpPost(uriBase + "/api/connections");
-            request.setEntity(data);
-            return request;
+        public RequestBuilder getHttpRequest(String urlBase, String connectionId, byte[] data) {
+            RequestBuilder builder = new RequestBuilder("POST");
+            builder.setUrl(urlBase + "/api/connections");
+            builder.addHeader(HttpHeaders.Names.CONTENT_TYPE, "application/x-compressed-bytes");
+            builder.setBody(data);
+            return builder;
         }
     },
     CONNECTION_REQUEST() {
         @Override
-        public HttpRequest getHttpRequest(String uriBase, String connectionId, HttpEntity data) {
-            HttpPut request = new HttpPut(uriBase + "/api/connections/" + connectionId);
-            request.setEntity(data);
-            return request;
+        public RequestBuilder getHttpRequest(String urlBase, String connectionId, byte[] data) {
+            RequestBuilder builder = new RequestBuilder("PUT");
+            builder.setUrl(urlBase + "/api/connections/" + connectionId);
+            builder.addHeader(HttpHeaders.Names.CONTENT_TYPE, "application/x-compressed-bytes");
+            builder.setBody(data);
+            return builder;
         }
     },
     CONNECTION_CLOSE() {
         @Override
-        public HttpRequest getHttpRequest(String uriBase, String connectionId, HttpEntity data) {
-            HttpDelete request = new HttpDelete(uriBase + "/api/connections/" + connectionId);
-            return request;
+        public RequestBuilder getHttpRequest(String urlBase, String connectionId, byte[] data) {
+            RequestBuilder builder = new RequestBuilder("DELETE");
+            builder.setUrl(urlBase + "/api/connections/" + connectionId);
+            return builder;
         }
     };
 
-    public abstract HttpRequest getHttpRequest(String uriBase, String connectionId, HttpEntity data);
+    public abstract RequestBuilder getHttpRequest(String urlBase, String connectionId, byte[] data);
 }
