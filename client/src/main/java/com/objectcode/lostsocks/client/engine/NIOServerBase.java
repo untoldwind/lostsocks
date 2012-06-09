@@ -4,6 +4,10 @@ import com.objectcode.lostsocks.client.Constants;
 import com.objectcode.lostsocks.client.config.IConfiguration;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.HttpClient;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.HeapChannelBufferFactory;
@@ -14,6 +18,7 @@ import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.util.Timeout;
 import org.jboss.netty.util.TimerTask;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -65,7 +70,7 @@ public abstract class NIOServerBase {
         String serverInfoMessage = null;
         try {
             log.info("<CLIENT> Version check : " + Constants.APPLICATION_VERSION + " - URL : " + configuration.getUrlString());
-            CompressedPacket versionCheckResult = ThreadCommunication.sendHttpMessage(configuration, RequestType.VERSION_CHECK, null, versionCheck);
+            CompressedPacket versionCheckResult = sendHttpMessage(configuration, RequestType.VERSION_CHECK, null, versionCheck);
 
             if (versionCheckResult != null) {
                 if (!Constants.APPLICATION_VERSION.equals(versionCheckResult.getDataAsString()))
@@ -82,6 +87,29 @@ public abstract class NIOServerBase {
             log.fatal("<CLIENT> Version check : Cannot check the server version. Exception : ", e);
             return (false);
         }
+    }
+
+
+    public static CompressedPacket sendHttpMessage(IConfiguration config, RequestType requestType, String connectionId, CompressedPacket input) {
+        HttpClient client = config.createHttpClient();
+
+        HttpRequest request = requestType.getHttpRequest(config.getTargetPath(), connectionId, input != null ? input.toEntity() : null);
+
+        for (int retry = 0; retry <= config.getMaxRetries(); retry++) {
+            try {
+                HttpResponse response = client.execute(config.getTargetHost(), request);
+
+                if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                    return CompressedPacket.fromEntity(response.getEntity());
+                }
+                log.error("Failed request (try #" + retry + ") " + request.getRequestLine().getMethod() + " " + request.getRequestLine().getUri() + " Status: " + response.getStatusLine());
+            } catch (IOException e) {
+                log.error("IOException (try #" + retry + ") " + e, e);
+                return null;
+            }
+        }
+        log.error("<CLIENT> The maximum number of retries has been done");
+        return null;
     }
 
     protected class ServerHandlerBase extends SimpleChannelUpstreamHandler implements TimerTask {
@@ -121,7 +149,7 @@ public abstract class NIOServerBase {
             CompressedPacket connectionCreate = new CompressedPacket(destinationUri + ":" + configuration.getTimeout(), false);
             try {
                 log.info("<CLIENT> SERVER, create a connection to " + destinationUri);
-                CompressedPacket connectionCreateResult = ThreadCommunication.sendHttpMessage(configuration, RequestType.CONNECTION_CREATE, null, connectionCreate);
+                CompressedPacket connectionCreateResult = sendHttpMessage(configuration, RequestType.CONNECTION_CREATE, null, connectionCreate);
                 if (connectionCreateResult != null) {
                     String data[] = connectionCreateResult.getDataAsString().split(":");
                     connectionId = data[0];
@@ -139,7 +167,7 @@ public abstract class NIOServerBase {
 
         protected synchronized boolean sendRequest(ChannelBuffer data) {
             CompressedPacket connectionRequset = new CompressedPacket(data != null ? data.array() : new byte[0], false);
-            CompressedPacket connectionResult = ThreadCommunication.sendHttpMessage(configuration, RequestType.CONNECTION_REQUEST, connectionId, connectionRequset);
+            CompressedPacket connectionResult = sendHttpMessage(configuration, RequestType.CONNECTION_REQUEST, connectionId, connectionRequset);
 
             if (connectionResult == null) {
                 log.error("<CLIENT> Server in error,  disconnecting application");
@@ -163,7 +191,7 @@ public abstract class NIOServerBase {
         }
 
         protected synchronized void sendClose() {
-            CompressedPacket connectionCloseResult = ThreadCommunication.sendHttpMessage(configuration, RequestType.CONNECTION_CLOSE, connectionId, null);
+            CompressedPacket connectionCloseResult = sendHttpMessage(configuration, RequestType.CONNECTION_CLOSE, connectionId, null);
 
             if (connectionCloseResult == null) {
                 log.error("<CLIENT> SERVER fail closing");
