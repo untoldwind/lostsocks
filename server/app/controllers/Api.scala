@@ -21,7 +21,7 @@ import play.api.mvc.{Result, AnyContent, Controller}
 object Api extends Controller with Secured with CompressedPacketFormat {
   val SERVER_TIMOUT = 120
 
-  val SUPPORTED_CLIENT_VERSIONS = List("1.0.2")
+  val SUPPORTED_CLIENT_VERSIONS = List("1.0.3")
 
   implicit val timeout = Timeout(10 seconds)
 

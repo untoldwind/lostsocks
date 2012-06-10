@@ -16,8 +16,11 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class NIOServerBase {
     private static final Logger log = LoggerFactory.getLogger(NIOServerBase.class);
@@ -29,6 +32,7 @@ public abstract class NIOServerBase {
     protected final int listenPort;
 
     protected Channel binding;
+
 
     protected NIOServerBase(IConfiguration configuration, int listenPort) {
         this.configuration = configuration;
@@ -106,7 +110,7 @@ public abstract class NIOServerBase {
                     } else if (callback != null) {
                         callback.onFailure(response.getStatusCode(), response.getStatusText());
                     }
-                    log.error("<CLIENT> Failed request " + request.getUrl() + " " + response.getStatusCode() + " " + response.getStatusText());
+                    log.error("<CLIENT> Failed request " + request.getMethod() + " " + request.getUrl() + " " + response.getStatusCode() + " " + response.getStatusText());
                     return null;
                 }
             });
@@ -116,20 +120,39 @@ public abstract class NIOServerBase {
         return null;
     }
 
+    protected class UpRequest {
+        final RequestType requestType;
+        final String connectionId;
+        final CompressedPacket input;
+        final IRequestCallback callback;
+
+        public UpRequest(RequestType requestType, String connectionId, CompressedPacket input, IRequestCallback callback) {
+            this.requestType = requestType;
+            this.connectionId = connectionId;
+            this.input = input;
+            this.callback = callback;
+        }
+    }
+
     protected class ServerHandlerBase extends SimpleChannelUpstreamHandler {
         protected String connectionId;
         protected Channel channel;
+        protected Queue<UpRequest> upRequests = new ConcurrentLinkedQueue<UpRequest>();
+        protected AtomicBoolean upOpen = new AtomicBoolean();
+        protected AtomicBoolean downOpen = new AtomicBoolean();
 
-        final IRequestCallback downStreamCallback = new IRequestCallback() {
+        protected IRequestCallback downStreamCallback = new IRequestCallback() {
             public void onSuccess(CompressedPacket result) {
+                downOpen.set(false);
                 byte[] data = result.getData();
                 ChannelBuffer buffer = HeapChannelBufferFactory.getInstance().getBuffer(data, 0, data.length);
                 if (channel.isWritable())
                     channel.write(buffer);
-                if ( !result.isEndOfCommunication() ) {
+                if (!result.isEndOfCommunication()) {
                     log.info("Get package, reconnect");
                     startDownPoll();
                 } else if (channel.isWritable()) {
+                    downOpen.set(false);
                     channel.close();
                 }
             }
@@ -148,7 +171,33 @@ public abstract class NIOServerBase {
         }
 
         protected void startDownPoll() {
+            if (downOpen.getAndSet(true))
+                return;
             sendHttpMessage(RequestType.CONNECTION_GET, connectionId, null, downStreamCallback);
+        }
+
+        protected void startUpPush() {
+            if (upOpen.getAndSet(true))
+                return;
+            final UpRequest request = upRequests.poll();
+            if (request == null) {
+                upOpen.set(false);
+                return;
+            }
+            sendHttpMessage(request.requestType, request.connectionId, request.input, new IRequestCallback() {
+                public void onSuccess(CompressedPacket result) {
+                    upOpen.set(false);
+                    if (request.callback != null)
+                        request.callback.onSuccess(result);
+                    startUpPush();
+                }
+
+                public void onFailure(int statusCode, String statusText) {
+                    upOpen.set(false);
+                    if (request.callback != null)
+                        request.callback.onFailure(statusCode, statusText);
+                }
+            });
         }
 
         protected void sendConnectionRequest(String destinationUri, final IRequestCallback callback) {
@@ -157,7 +206,7 @@ public abstract class NIOServerBase {
             CompressedPacket connectionCreate = new CompressedPacket(destinationUri + ":" + configuration.getTimeout() + ":stream", false);
             try {
                 log.info("<CLIENT> SERVER, create a connection to " + destinationUri);
-                sendHttpMessage(RequestType.CONNECTION_CREATE, null, connectionCreate,
+                upRequests.offer(new UpRequest(RequestType.CONNECTION_CREATE, null, connectionCreate,
                         new IRequestCallback() {
                             public void onSuccess(CompressedPacket result) {
                                 String data[] = result.getDataAsString().split(":");
@@ -172,7 +221,8 @@ public abstract class NIOServerBase {
                                 if (callback != null)
                                     callback.onFailure(statusCode, statusText);
                             }
-                        });
+                        }));
+                startUpPush();
             } catch (Exception ex) {
                 log.error("<CLIENT> Cannot initiate a dialog with SERVER. Exception : " + ex, ex);
                 callback.onFailure(600, ex.toString());
@@ -181,14 +231,9 @@ public abstract class NIOServerBase {
 
         protected void sendRequest(ChannelBuffer data, final IRequestCallback callback) {
             CompressedPacket connectionRequset = new CompressedPacket(data != null ? data.array() : new byte[0], false);
-            sendHttpMessage(RequestType.CONNECTION_REQUEST, connectionId, connectionRequset,
+            upRequests.offer(new UpRequest(RequestType.CONNECTION_REQUEST, connectionId, connectionRequset,
                     new IRequestCallback() {
                         public void onSuccess(CompressedPacket result) {
-                            //                       byte[] resultData = result.getData();
-                            //                         ChannelBuffer buffer = HeapChannelBufferFactory.getInstance().getBuffer(resultData, 0, resultData.length);
-//                            if (channel.isWritable())
-                            //                              channel.write(buffer);
-
                             if (result.isEndOfCommunication()) {
                                 log.info("<SERVER> Remote server closed the connection : " + connectionId);
 
@@ -205,11 +250,12 @@ public abstract class NIOServerBase {
                             if (callback != null)
                                 callback.onFailure(statusCode, statusText);
                         }
-                    });
+                    }));
+            startUpPush();
         }
 
         protected void sendClose(final IRequestCallback callback) {
-            sendHttpMessage(RequestType.CONNECTION_CLOSE, connectionId, null,
+            upRequests.offer(new UpRequest(RequestType.CONNECTION_CLOSE, connectionId, null,
                     new IRequestCallback() {
                         public void onSuccess(CompressedPacket result) {
                             log.info("<CLIENT> Disconnecting application (regular)");
@@ -222,7 +268,8 @@ public abstract class NIOServerBase {
                             if (callback != null)
                                 callback.onFailure(statusCode, statusText);
                         }
-                    });
+                    }));
+            startUpPush();
         }
     }
 }

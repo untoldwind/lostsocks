@@ -25,10 +25,12 @@ public class NIOGenericServer extends NIOServerBase {
 
     private class GenericServerHandler extends ServerHandlerBase {
         public GenericServerHandler() {
+            System.out.println(">>> new");
         }
 
         @Override
         public void channelConnected(final ChannelHandlerContext ctx, final ChannelStateEvent e) throws Exception {
+            channel = e.getChannel();
             String destinationUri = tunnel.getDestinationUri();
 
             sendConnectionRequest(destinationUri, new IRequestCallback() {
