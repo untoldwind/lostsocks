@@ -2,7 +2,7 @@ import sbt._
 import Keys._
 import PlayProject._
 import sbtassembly.Plugin._
-import AssemblyKeys._
+import sbtassembly.Plugin.AssemblyKeys._
 
 object ApplicationBuild extends Build {
 
@@ -36,17 +36,17 @@ object ApplicationBuild extends Build {
           p => p.data.getName == "scala-library.jar"
         }
     },
-    mainClass in assembly := Some("com.objectcode.lostsocks.client.Main"),
-    playStage <<= (baseDirectory, packagedArtifacts, streams) map { (root, artifacts, s) =>
-      artifacts.foreach {
-        case (Artifact("client", _ , _, Some("assembly"), _, _, _), _file) =>
-          val destPath =  root / ".." / "server" / "public" / "client-executable.jar"
-          s.log.info("Copy " + _file + " to " + destPath)
-          IO.copyFile(_file, destPath, true)
-        case _ =>
-      }
-    }
+    mainClass in assembly := Some("com.objectcode.lostsocks.client.Main")
   )
+
+//assembly <<= (baseDirectory, packagedArtifacts, streams) map { (root, artifacts, s) =>
+//  artifacts.foreach {
+//    case (Artifact("client", _ , _, Some("assembly"), _, _, _), _file) =>
+//      val destPath =  root / ".." / "server" / "public" / "client-executable.jar"
+//      s.log.info("Copy " + _file + " to " + destPath)
+//      IO.copyFile(_file, destPath, true)
+//    case _ =>
+//  }
 
   val appDependencies = Seq(
     "postgresql" % "postgresql" % "9.0-801.jdbc4",
@@ -54,6 +54,5 @@ object ApplicationBuild extends Build {
   )
 
   lazy val server = PlayProject("server", appVersion, appDependencies, mainLang = SCALA,
-    path = file("server"), settings = buildSettings).settings(
-  ).dependsOn(client)
+    path = file("server"), settings = buildSettings)
 }
