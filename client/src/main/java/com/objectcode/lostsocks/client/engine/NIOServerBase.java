@@ -5,6 +5,7 @@ import com.objectcode.lostsocks.client.Constants;
 import com.objectcode.lostsocks.client.config.IConfiguration;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.HeapChannelBufferFactory;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
@@ -15,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -29,7 +29,6 @@ public abstract class NIOServerBase {
     protected final int listenPort;
 
     protected Channel binding;
-
 
     protected NIOServerBase(IConfiguration configuration, int listenPort) {
         this.configuration = configuration;
@@ -117,41 +116,27 @@ public abstract class NIOServerBase {
         return null;
     }
 
-    public void connectDownStream(String connectionId, final IDownStreamCallback callback) {
-        AsyncHttpClient client = configuration.createHttpClient();
-
-        RequestBuilder requestBuilder = new RequestBuilder("GET");
-        requestBuilder.setUrl(configuration.getUrl() + "/api/connections/" + connectionId);
-        requestBuilder.setRealm(configuration.getRealm());
-
-        final Request request = requestBuilder.build();
-
-        try {
-            client.executeRequest(request, new AsyncCompletionHandler<Object>() {
-                @Override
-                public Object onCompleted(Response response) throws Exception {
-                    if (response.getStatusCode() != 200)
-                        log.error("<CLIENT> Failed request " + request.getUrl() + " " + response.getStatusCode() + " " + response.getStatusText());
-                    System.out.println(">>> EOF");
-                    callback.sendEOF();
-                    return null;
-                }
-
-                @Override
-                public STATE onBodyPartReceived(HttpResponseBodyPart content) throws Exception {
-                    System.out.println(">>> Body part " + Arrays.toString(content.getBodyPartBytes()));
-                    callback.sendData(content.getBodyPartBytes());
-                    return STATE.CONTINUE;
-                }
-            });
-        } catch (Exception e) {
-            log.error("Exception " + e, e);
-        }
-    }
-
     protected class ServerHandlerBase extends SimpleChannelUpstreamHandler {
         protected String connectionId;
         protected Channel channel;
+
+        final IRequestCallback downStreamCallback = new IRequestCallback() {
+            public void onSuccess(CompressedPacket result) {
+                byte[] data = result.getData();
+                ChannelBuffer buffer = HeapChannelBufferFactory.getInstance().getBuffer(data, 0, data.length);
+                if (channel.isWritable())
+                    channel.write(buffer);
+                if ( !result.isEndOfCommunication() ) {
+                    log.info("Get package, reconnect");
+                    startDownPoll();
+                } else if (channel.isWritable()) {
+                    channel.close();
+                }
+            }
+
+            public void onFailure(int statusCode, String statusText) {
+            }
+        };
 
         @Override
         public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
@@ -160,6 +145,10 @@ public abstract class NIOServerBase {
             } else
                 log.error("Dont know anything about  " + e.getChannel());
             super.channelDisconnected(ctx, e);    //To change body of overridden methods use File | Settings | File Templates.
+        }
+
+        protected void startDownPoll() {
+            sendHttpMessage(RequestType.CONNECTION_GET, connectionId, null, downStreamCallback);
         }
 
         protected void sendConnectionRequest(String destinationUri, final IRequestCallback callback) {

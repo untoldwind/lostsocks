@@ -34,6 +34,14 @@ public enum RequestType {
             return builder;
         }
     },
+    CONNECTION_GET() {
+        @Override
+        public RequestBuilder getHttpRequest(String urlBase, String connectionId, byte[] data) {
+            RequestBuilder builder = new RequestBuilder("GET");
+            builder.setUrl(urlBase + "/api/connections/" + connectionId);
+            return builder;
+        }
+    },
     CONNECTION_CLOSE() {
         @Override
         public RequestBuilder getHttpRequest(String urlBase, String connectionId, byte[] data) {

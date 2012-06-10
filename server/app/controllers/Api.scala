@@ -2,7 +2,6 @@ package controllers
 
 import play.api.Play.current
 import scala.math.min
-import play.api.mvc.Controller
 import models.{ConnectionTable, IdGenerator, CompressedPacket}
 import utils.IPHelper
 import play.api.Logger
@@ -15,6 +14,9 @@ import akka.util.{ByteString, Timeout}
 import play.api.libs.iteratee.Input.{El, EOF, Empty}
 import engine.ConnectionActor.Disconnect
 import engine._
+import play.api.libs.concurrent._
+import anorm.Success
+import play.api.mvc.{Result, AnyContent, Controller}
 
 object Api extends Controller with Secured with CompressedPacketFormat {
   val SERVER_TIMOUT = 120
@@ -49,14 +51,14 @@ object Api extends Controller with Secured with CompressedPacketFormat {
       var userTimeout = parts(2).toInt
       if (userTimeout < 0) userTimeout = 0
 
-      val downQueue = if (parts.size > 3 && "streams" == parts(3)) new QueuedDownStreamReceiver else new EnumeratorDownStreamReceiver
+      val downQueue = new DownStreamQueue
       val connectionActor = Akka.system.actorOf(Props(new ConnectionActor(host, port, downQueue)))
 
       try {
         Await.result(connectionActor ? ConnectionActor.Connect, timeout.duration)
 
         Logger.info("Connection " + connectionId + " created from " + iprev + "(" + ip + ") to " + host + ":" + port)
-        val extConn = new ExtendedConnection()
+        val extConn = new ExtendedConnection(connectionId, connectionActor, downQueue)
         extConn.ip = ip
         extConn.iprev = iprev
         extConn.destIP = host
@@ -69,8 +71,6 @@ object Api extends Controller with Secured with CompressedPacketFormat {
           else extConn.timeout = min(userTimeout, SERVER_TIMOUT)
         }
         extConn.authorizedTime = 0
-        extConn.connectionActor = connectionActor
-        extConn.downStreamReceiver = downQueue
         // Add this to the ConnectionTable
         ConnectionTable(request.user).put(connectionId, extConn)
 
@@ -90,7 +90,6 @@ object Api extends Controller with Secured with CompressedPacketFormat {
           val lastAccessDate = extConn.lastAccessDate
           extConn.lastAccessDate = new java.util.Date()
           val connectionActor = extConn.connectionActor
-          val downQueueReceiver = extConn.downStreamReceiver
 
           // Add the sended bytes
           extConn.uploadedBytes += request.body.data.size
@@ -98,52 +97,26 @@ object Api extends Controller with Secured with CompressedPacketFormat {
           // write the bytes
           connectionActor ! ConnectionActor.Write(request.body.data)
 
-          // Update the upload speed
-          val div = 1 + extConn.lastAccessDate.getTime - lastAccessDate.getTime
-          extConn.currentUploadSpeed = request.body.data.size.toDouble / div
+          extConn.incrementUp(request.body.data.size)
 
-          // Build the response
-          var data = ByteString.empty
-          var hasEOF = false
-          downQueueReceiver match {
-            case queue: QueuedDownStreamReceiver =>
-              val available = queue.available
-
-              for (i <- 1 to available) {
-                queue.take match {
-                  case El(bytes) => data = data ++ bytes
-                  case EOF => hasEOF = true
-                  case Empty =>
-                }
-              }
-            case _:EnumeratorDownStreamReceiver =>
-          }
-
-          if (hasEOF) {
-            Logger.info("Connection closed: " + id)
-            // Remove the connection from the ConnectionTable
-            ConnectionTable(request.user).remove(id)
-          }
-
-          // Add the received bytes
-          extConn.downloadedBytes += data.size
-
-          // Update the download speed
-          extConn.currentDownloadSpeed = data.size.toDouble / div
-
-          Ok(CompressedPacket(data.toArray, hasEOF))
+          Ok(CompressedPacket(Array.empty[Byte], false))
       }.getOrElse(NotFound)
   }
 
-  def connectionGet(id:String) = BasicAuthenticated {
+  def connectionGet(id: String) = BasicAuthenticated {
     implicit request =>
       ConnectionTable(request.user).get(id).map {
         extConn =>
-          extConn.downStreamReceiver match {
-            case enum : EnumeratorDownStreamReceiver =>
-              Ok.stream[Array[Byte]](enum.assignIteratee(_))
-            case _:QueuedDownStreamReceiver =>
-              Ok(CompressedPacket(ByteString.empty.toArray, true))
+          if (extConn.downQueue.available > 0) {
+            combineQueued(extConn)
+          } else {
+            Async {
+              val future = extConn.connectionActor ? ConnectionActor.AwaitRead
+              future.map(_ => combineQueued(extConn)).recover {
+                case e =>
+                  Ok(CompressedPacket(Array.empty[Byte], false))
+              }.asPromise
+            }
           }
       }.getOrElse(NotFound)
   }
@@ -174,4 +147,27 @@ object Api extends Controller with Secured with CompressedPacketFormat {
       }
   }
 
+  def combineQueued(extConn: ExtendedConnection)(implicit request: AuthenticatedRequest[AnyContent]) = {
+    var data = ByteString.empty
+    var hasEOF = false
+    val available = extConn.downQueue.available
+
+    for (i <- 1 to available) {
+      extConn.downQueue.take match {
+        case El(bytes) => data = data ++ bytes
+        case EOF => hasEOF = true
+        case Empty =>
+      }
+    }
+
+    if (hasEOF) {
+      Logger.info("Connection closed: " + extConn.connectionId)
+      // Remove the connection from the ConnectionTable
+      ConnectionTable(request.user).remove(extConn.connectionId)
+    }
+
+    extConn.incrementDown(data.size)
+
+    Ok(CompressedPacket(data.toArray, hasEOF))
+  }
 }

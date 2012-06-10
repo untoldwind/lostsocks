@@ -5,7 +5,6 @@ import com.objectcode.lostsocks.client.net.ISocksProtocolCallback;
 import com.objectcode.lostsocks.client.net.SocksProtocol;
 import com.objectcode.lostsocks.client.net.SocksProtocolFactory;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.HeapChannelBufferFactory;
 import org.jboss.netty.channel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,19 +49,9 @@ public class NIOSocksServer extends NIOServerBase {
                     public void connect(String hostOrIP, int port, final IRequestCallback callback) {
                         sendConnectionRequest(hostOrIP + ":" + port, new IRequestCallback() {
                             public void onSuccess(CompressedPacket result) {
-                                connectDownStream(connectionId, new IDownStreamCallback() {
-                                    public void sendData(byte[] data) {
-                                        ChannelBuffer buffer = HeapChannelBufferFactory.getInstance().getBuffer(data, 0, data.length);
-                                        if (channel.isWritable())
-                                            channel.write(buffer);
-                                    }
-
-                                    public void sendEOF() {
-                                        if (channel.isWritable())
-                                            channel.close();
-                                    }
-                                });
                                 callback.onSuccess(result);
+
+                                startDownPoll();
                             }
 
                             public void onFailure(int statusCode, String statusText) {

@@ -3,7 +3,6 @@ package com.objectcode.lostsocks.client.engine;
 import com.objectcode.lostsocks.client.config.IConfiguration;
 import com.objectcode.lostsocks.client.config.Tunnel;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.HeapChannelBufferFactory;
 import org.jboss.netty.channel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,18 +34,8 @@ public class NIOGenericServer extends NIOServerBase {
             sendConnectionRequest(destinationUri, new IRequestCallback() {
                 public void onSuccess(CompressedPacket result) {
                     channel = e.getChannel();
-                    connectDownStream(connectionId, new IDownStreamCallback() {
-                        public void sendData(byte[] data) {
-                            ChannelBuffer buffer = HeapChannelBufferFactory.getInstance().getBuffer(data, 0, data.length);
-                            if (channel.isWritable())
-                            channel.write(buffer);
-                        }
 
-                        public void sendEOF() {
-                            if (channel.isWritable())
-                                channel.close();
-                        }
-                    });
+                    startDownPoll();
                 }
 
                 public void onFailure(int statusCode, String statusText) {

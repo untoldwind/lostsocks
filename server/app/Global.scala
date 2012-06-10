@@ -21,21 +21,19 @@ object Global extends GlobalSettings {
     Logger.info("Application has started")
 
     Akka.system.scheduler.schedule(10 seconds, 10 seconds) {
-      Logger.info("Sweep")
+      Logger.debug("Sweeping")
       ThreadPing.sweepAll
-      println("Remaining")
       ConnectionTable.foreach {
         table =>
           table.foreach {
             case (id, extConn) =>
-              println("  " + id)
+              Logger.debug("Remaining connection " + id)
           }
       }
     }
   }
 
   override def onStop(app: Application) {
-
     Logger.info("Application shutdown...")
   }
 

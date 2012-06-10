@@ -16,7 +16,7 @@ public class TunnelsTableModel extends AbstractTableModel
 {
   private static final long serialVersionUID = -483811386797964583L;
 
-  List  m_tunnels;
+  List<TunnelElement>  m_tunnels;
 
 
   /**
@@ -26,7 +26,7 @@ public class TunnelsTableModel extends AbstractTableModel
    */
   public TunnelsTableModel( Tunnel[] tunnels )
   {
-    m_tunnels = new ArrayList();
+    m_tunnels = new ArrayList<TunnelElement>();
 
     int  i;
 
