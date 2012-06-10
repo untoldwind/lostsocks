@@ -30,11 +30,10 @@ object ApplicationBuild extends Build {
       "ch.qos.logback" % "logback-classic" % "1.0.0"
     ),
     crossPaths := false,
-    unmanagedJars in Compile += file(System.getProperty("java.home") + "/lib/javaws.jar"),
     excludedJars in assembly <<= (fullClasspath in assembly) map {
       cp =>
         cp filter {
-          p => p.data.getName == "javaws.jar" || p.data.getName == "scala-library.jar"
+          p => p.data.getName == "scala-library.jar"
         }
     },
     mainClass in assembly := Some("com.objectcode.lostsocks.client.Main"),
