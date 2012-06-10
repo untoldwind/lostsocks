@@ -1,4 +1,4 @@
-@(tables: Seq[ConnectionTable])(implicit request:AuthenticatedRequest[_])
+@(tables: Seq[ConnectionTable], files: Seq[String])(implicit request:AuthenticatedRequest[_])
 
 @import play.api.libs.json.Json
 
@@ -8,6 +8,15 @@
 
 <ul>
 <li>Download executable jar: <a href="@routes.Assets.at("client-executable.jar")">client-executable.jar</a></li>
+</ul>
+
+<p>@(new java.io.File(".").getAbsolutePath)</p>
+<ul>
+@files.map { f =>
+    <li>
+        @f
+    </li>
+}
 </ul>
 
 @tables.map { table =>
