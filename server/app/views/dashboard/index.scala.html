@@ -4,6 +4,12 @@
 
 @authenticated("Dashboard") {
 <h1>Dashboard</h1>
+<h2>Client</h2>
+
+<ul>
+<li>Download executable jar: <a href="@routes.Assets.at("client-executable.jar")">client-executable.jar</a></li>
+</ul>
+
 @tables.map { table =>
     <h2>Connection for @table.username</h2>
     <table>

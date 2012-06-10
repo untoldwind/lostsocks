@@ -37,7 +37,15 @@ object ApplicationBuild extends Build {
           p => p.data.getName == "javaws.jar" || p.data.getName == "scala-library.jar"
         }
     },
-    mainClass in assembly := Some("com.objectcode.lostsocks.client.Main")
+    mainClass in assembly := Some("com.objectcode.lostsocks.client.Main"),
+    playStage <<= (baseDirectory, packagedArtifacts) map { (root, artifacts) =>
+      artifacts.foreach {
+        case (Artifact("client", _ , _, Some("assembly"), _, _, _), _file) =>
+          val destPath =  root / ".." / "server" / "public" / "client-executable.jar"
+          IO.copyFile(_file, destPath, true)
+        case _ =>
+      }
+    }
   )
 
   val appDependencies = Seq(
@@ -46,5 +54,6 @@ object ApplicationBuild extends Build {
   )
 
   lazy val server = PlayProject("server", appVersion, appDependencies, mainLang = SCALA,
-    path = file("server"), settings = buildSettings)
+    path = file("server"), settings = buildSettings).settings(
+  ).dependsOn(client)
 }
