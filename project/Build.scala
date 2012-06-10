@@ -37,10 +37,11 @@ object ApplicationBuild extends Build {
         }
     },
     mainClass in assembly := Some("com.objectcode.lostsocks.client.Main"),
-    playStage <<= (baseDirectory, packagedArtifacts) map { (root, artifacts) =>
+    playStage <<= (baseDirectory, packagedArtifacts, streams) map { (root, artifacts, s) =>
       artifacts.foreach {
         case (Artifact("client", _ , _, Some("assembly"), _, _, _), _file) =>
           val destPath =  root / ".." / "server" / "public" / "client-executable.jar"
+          s.log.info("Copy " + _file + " to " + destPath)
           IO.copyFile(_file, destPath, true)
         case _ =>
       }
