@@ -97,6 +97,7 @@ public abstract class NIOServerBase {
 
         RequestBuilder requestBuilder = requestType.getHttpRequest(configuration.getUrlString(), connectionId, input != null ? input.toBody() : null);
         requestBuilder.setRealm(configuration.getRealm());
+
         final Request request = requestBuilder.build();
         try {
             return client.executeRequest(request, new AsyncCompletionHandler<CompressedPacket>() {

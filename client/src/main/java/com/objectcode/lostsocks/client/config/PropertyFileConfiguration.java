@@ -392,6 +392,8 @@ public class PropertyFileConfiguration implements IConfiguration {
                     configBuilder = configBuilder.setProxyServer(proxyServer);
                 }
                 configBuilder.setMaxRequestRetry(3);
+                configBuilder.setAllowPoolingConnection(true);
+                configBuilder.setAllowSslConnectionPool(true);
                 NettyAsyncHttpProvider provider = new NettyAsyncHttpProvider(configBuilder.build());
                 m_httpClient = new AsyncHttpClient(provider, configBuilder.build());
             }
@@ -405,6 +407,7 @@ public class PropertyFileConfiguration implements IConfiguration {
         builder.setScheme(Realm.AuthScheme.BASIC);
         builder.setPrincipal(m_user);
         builder.setPassword(m_password);
+        builder.setUsePreemptiveAuth(true);
 
         return builder.build();
     }
