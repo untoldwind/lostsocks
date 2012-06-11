@@ -1,6 +1,6 @@
 import sbt._
-import Keys._
 import PlayProject._
+import sbt.Keys._
 import sbtassembly.Plugin._
 import sbtassembly.Plugin.AssemblyKeys._
 
@@ -54,5 +54,11 @@ object ApplicationBuild extends Build {
   )
 
   lazy val server = PlayProject("server", appVersion, appDependencies, mainLang = SCALA,
-    path = file("server"), settings = buildSettings)
+    path = file("server"), settings = buildSettings).settings(
+    playStage <<= (playStage, assembly in client, classDirectory in Compile, streams) map { (stage, client, classDir, s) =>
+      val destPath = classDir / "public" / "client-executable.jar"
+      IO.copyFile(client, destPath, true)
+      s.log.info("Copyed " + client + " to " + destPath)
+    }
+  )
 }
