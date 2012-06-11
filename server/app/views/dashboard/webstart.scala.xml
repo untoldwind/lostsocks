@@ -1,0 +1,23 @@
+@()(implicit request:Request[_])
+<?xml version="1.0" encoding="utf-8"?>
+
+<jnlp spec="0.2 1.0"
+      codebase="http://@request.host/assets"
+      href="http://@request.host/dashboard/webstart.jnlp">
+    <information>
+        <title>Lostsocks</title>
+        <vendor>ObjectCode</vendor>
+        <homepage href="http://www.objectcode.de"/>
+        <description>Lostsocks</description>
+        <description kind="short">Socks 2 HTTP</description>
+        <!--      <icon href="images/nts-suite.jpg"/> -->
+    </information>
+    <resources>
+        <j2se version="1.6+"/>
+        <jar href="client-executable.jar" main="true" download="eager"/>
+    </resources>
+    <application-desc main-class="com.objectcode.lostsocks.client.Main"/>
+    <security>
+        <all-permissions/>
+    </security>
+</jnlp>

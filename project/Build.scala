@@ -55,9 +55,13 @@ object ApplicationBuild extends Build {
 
   lazy val server = PlayProject("server", appVersion, appDependencies, mainLang = SCALA,
     path = file("server"), settings = buildSettings).settings(
-      playCopyAssets <<=  (playCopyAssets, classDirectory in Compile, assembly in client, streams) map { (assets, classDir, client, s ) =>
+      playCopyAssets <<=  (baseDirectory, playCopyAssets, classDirectory in Compile, assembly in client, streams) map {
+        (base, assets, classDir, client, s ) =>
         val dest = classDir / "public" / "client-executable.jar"
         IO.copyFile(client, dest, true)
+        val keystore = base / ".." / "keystore.ks"
+        println("jarsigner -keystore " + keystore + " -storepass 123456 " + dest + " mykey")
+        "jarsigner -keystore " + keystore + " -storepass 123456 " + dest + " mykey" ! s.log
         s.log.info("Copyed " + client + " to " + dest)
         assets ++ Seq((client, dest))
       }

@@ -19,6 +19,7 @@ POST    /profile/password           controllers.UserProfile.updatePassword
 GET     /profile/password/edit      controllers.UserProfile.changePassword
 
 GET     /dashboard                  controllers.Dashboard.index
+GET     /dashboard/webstart.jnlp    controllers.Dashboard.webstart
 
 GET     /admin/users                controllers.admin.Users.index
 GET     /admin/users/new            controllers.admin.Users.add
