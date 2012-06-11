@@ -107,6 +107,7 @@ object Api extends Controller with Secured with CompressedPacketFormat {
     implicit request =>
       ConnectionTable(request.user).get(id).map {
         extConn =>
+          extConn.lastAccessDate = new java.util.Date()
           if (extConn.downQueue.available > 0) {
             combineQueued(extConn)
           } else {

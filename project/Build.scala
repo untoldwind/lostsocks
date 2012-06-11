@@ -59,9 +59,9 @@ object ApplicationBuild extends Build {
         (base, assets, classDir, client, s ) =>
         val dest = classDir / "public" / "client-executable.jar"
         IO.copyFile(client, dest, true)
-        val keystore = base / ".." / "keystore.ks"
-        println("jarsigner -keystore " + keystore + " -storepass 123456 " + dest + " mykey")
-        "jarsigner -keystore " + keystore + " -storepass 123456 " + dest + " mykey" ! s.log
+//        val keystore = base / ".." / "keystore.ks"
+//        println("jarsigner -keystore " + keystore + " -storepass 123456 " + dest + " mykey")
+//        "jarsigner -keystore " + keystore + " -storepass 123456 " + dest + " mykey" ! s.log
         s.log.info("Copyed " + client + " to " + dest)
         assets ++ Seq((client, dest))
       }
