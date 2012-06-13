@@ -12,13 +12,14 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.Properties;
 
-/**
- * @author junglas
- * @created 28. Mai 2004
- */
 public class PropertyFileConfiguration implements IConfiguration {
     private static final Logger log = LoggerFactory.getLogger(PropertyFileConfiguration.class);
 
@@ -78,7 +79,7 @@ public class PropertyFileConfiguration implements IConfiguration {
 
     private AsyncHttpClient m_httpClient;
 
-    private String m_targetPath;
+    private List<Network> m_localNetworks;
 
     /**
      * Constructor for the PropertyFileConfiguration object
@@ -120,7 +121,6 @@ public class PropertyFileConfiguration implements IConfiguration {
             } else {
                 m_url = null;
             }
-            m_targetPath = null;
         } catch (Exception e) {
             log.error("Exception", e);
         }
@@ -402,6 +402,7 @@ public class PropertyFileConfiguration implements IConfiguration {
         return m_httpClient;
     }
 
+    @Override
     public Realm getRealm() {
         Realm.RealmBuilder builder = new Realm.RealmBuilder();
         builder.setScheme(Realm.AuthScheme.BASIC);
@@ -410,6 +411,11 @@ public class PropertyFileConfiguration implements IConfiguration {
         builder.setUsePreemptiveAuth(true);
 
         return builder.build();
+    }
+
+    @Override
+    public List<Network> getLocalNetworks() {
+        return m_localNetworks;
     }
 
     /**
@@ -425,6 +431,18 @@ public class PropertyFileConfiguration implements IConfiguration {
             readProperties(properties);
 
             m_configurationChanged = false;
+
+            List<Network> localNetworks = new ArrayList<Network>();
+            Enumeration<NetworkInterface> it = NetworkInterface.getNetworkInterfaces();
+            while (it.hasMoreElements()) {
+                NetworkInterface networkIf = it.nextElement();
+                for (InterfaceAddress ifAddress : networkIf.getInterfaceAddresses()) {
+                    if (!ifAddress.getAddress().isAnyLocalAddress() && !ifAddress.getAddress().isLoopbackAddress()) {
+                        localNetworks.add(new Network(ifAddress.getAddress(), ifAddress.getNetworkPrefixLength()));
+                    }
+                }
+            }
+            m_localNetworks = localNetworks;
         } catch (Exception e) {
             log.error("Exception", e);
         }

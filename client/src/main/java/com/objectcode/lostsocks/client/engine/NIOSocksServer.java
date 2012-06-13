@@ -37,6 +37,11 @@ public class NIOSocksServer extends NIOServerBase {
 
             channel = e.getChannel();
 
+            if ( upChannel != null ) {
+                upChannel.write(msg);
+                return;
+            }
+
             if (socksProtocol == null)
                 socksProtocol = SocksProtocolFactory.create(msg);
 
@@ -47,27 +52,26 @@ public class NIOSocksServer extends NIOServerBase {
                     }
 
                     public void connect(String hostOrIP, int port, final IRequestCallback callback) {
-                        sendConnectionRequest(hostOrIP + ":" + port, new IRequestCallback() {
-                            public void onSuccess(CompressedPacket result) {
-                                callback.onSuccess(result);
+                        if (isLocalNetwork(hostOrIP)) {
+                            log.info("Destination: " + hostOrIP + " is local");
+                            connectLocal(hostOrIP, port, callback);
+                        } else {
+                            sendConnectionRequest(hostOrIP + ":" + port, new IRequestCallback() {
+                                public void onSuccess(CompressedPacket result) {
+                                    callback.onSuccess(result);
 
-                                startDownPoll();
-                            }
+                                    startDownPoll();
+                                }
 
-                            public void onFailure(int statusCode, String statusText) {
-                                callback.onFailure(statusCode, statusText);
-                            }
-                        });
+                                public void onFailure(int statusCode, String statusText) {
+                                    callback.onFailure(statusCode, statusText);
+                                }
+                            });
+                        }
                     }
                 });
             } else {
-                sendRequest(msg, new IRequestCallback() {
-                    public void onSuccess(CompressedPacket result) {
-                    }
-
-                    public void onFailure(int statusCode, String statusText) {
-                    }
-                });
+                sendRequest(msg, null);
             }
         }
     }

@@ -4,6 +4,7 @@ import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.Realm;
 
 import java.net.URL;
+import java.util.List;
 
 /**
  * @author junglas
@@ -11,69 +12,71 @@ import java.net.URL;
 public interface IConfiguration {
     public int getDelay();
 
-    public long getTimeout();
+    long getTimeout();
 
-    public int getMaxRetries();
+    int getMaxRetries();
 
-    public long getDelayBetweenTries();
+    long getDelayBetweenTries();
 
-    public boolean isListenOnlyLocalhost();
+    boolean isListenOnlyLocalhost();
 
-    public long getForceRequestAfter();
+    long getForceRequestAfter();
 
-    public long getDontTryToMinimizeTrafficBefore();
+    long getDontTryToMinimizeTrafficBefore();
 
-    public boolean isRequestOnlyIfClientActivity();
+    boolean isRequestOnlyIfClientActivity();
 
-    public int getSocksPort();
+    int getSocksPort();
 
-    public URL getUrl();
+    URL getUrl();
 
-    public String getUrlString();
+    String getUrlString();
 
-    public void setUrlString(String url);
+    void setUrlString(String url);
 
-    public String getUser();
+    String getUser();
 
-    public void setUser(String user);
+    void setUser(String user);
 
-    public String getPassword();
+    String getPassword();
 
-    public void setPassword(String password);
+    void setPassword(String password);
 
-    public boolean isUseProxy();
+    boolean isUseProxy();
 
-    public String getProxyHost();
+    String getProxyHost();
 
-    public String getProxyPort();
+    String getProxyPort();
 
-    public String getProxyUser();
+    String getProxyUser();
 
-    public boolean isProxyNeedsAuthentication();
+    boolean isProxyNeedsAuthentication();
 
-    public String getProxyPassword();
+    String getProxyPassword();
 
-    public Tunnel[] getTunnels();
+    Tunnel[] getTunnels();
 
-    public void setTunnels(Tunnel[] tunnels);
+    void setTunnels(Tunnel[] tunnels);
 
-    public void setProxyHost(String proxyHost);
+    void setProxyHost(String proxyHost);
 
-    public void setProxyNeedsAuthentication(boolean proxyNeedsAuthentication);
+    void setProxyNeedsAuthentication(boolean proxyNeedsAuthentication);
 
-    public void setProxyPassword(String proxyPassword);
+    void setProxyPassword(String proxyPassword);
 
-    public void setProxyPort(String proxyPort);
+    void setProxyPort(String proxyPort);
 
-    public void setProxyUser(String proxyUser);
+    void setProxyUser(String proxyUser);
 
-    public void setUseProxy(boolean useProxy);
+    void setUseProxy(boolean useProxy);
 
-    public void load();
+    void load();
 
-    public void save();
+    void save();
 
-    public AsyncHttpClient createHttpClient();
+    AsyncHttpClient createHttpClient();
 
-    public Realm getRealm();
+    Realm getRealm();
+
+    List<Network> getLocalNetworks();
 }

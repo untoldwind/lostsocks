@@ -3,24 +3,22 @@ package com.objectcode.lostsocks.client.engine;
 import com.ning.http.client.*;
 import com.objectcode.lostsocks.client.Constants;
 import com.objectcode.lostsocks.client.config.IConfiguration;
+import com.objectcode.lostsocks.client.config.Network;
+import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.HeapChannelBufferFactory;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
+import org.jboss.netty.channel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class NIOServerBase {
     private static final Logger log = LoggerFactory.getLogger(NIOServerBase.class);
@@ -33,6 +31,7 @@ public abstract class NIOServerBase {
 
     protected Channel binding;
 
+    protected AtomicInteger localIdCounter = new AtomicInteger();
 
     protected NIOServerBase(IConfiguration configuration, int listenPort) {
         this.configuration = configuration;
@@ -138,6 +137,7 @@ public abstract class NIOServerBase {
     protected class ServerHandlerBase extends SimpleChannelUpstreamHandler {
         protected String connectionId;
         protected Channel channel;
+        protected Channel upChannel;
         protected Queue<UpRequest> upRequests = new ConcurrentLinkedQueue<UpRequest>();
         protected AtomicBoolean upOpen = new AtomicBoolean();
         protected AtomicBoolean downOpen = new AtomicBoolean();
@@ -164,6 +164,12 @@ public abstract class NIOServerBase {
 
         @Override
         public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+            if ( upChannel != null ) {
+                log.info("Local close " + connectionId);
+                upChannel.close();
+                return;
+            }
+
             if (channel != null && connectionId != null) {
                 sendClose(null);
             } else
@@ -271,6 +277,52 @@ public abstract class NIOServerBase {
                         }
                     }));
             startUpPush();
+        }
+
+        protected boolean isLocalNetwork(String hostOrIP) {
+            try {
+                InetAddress[] address = Inet4Address.getAllByName(hostOrIP);
+
+                for (Network localNetwork : configuration.getLocalNetworks()) {
+                    for (int i = 0; i < address.length; i++) {
+                        if (address[i] instanceof Inet4Address) {
+                            if (localNetwork.match(((Inet4Address) address[i]).getAddress()))
+                                return true;
+                        } else if (address[i] instanceof Inet6Address) {
+                            if (localNetwork.match(((Inet6Address) address[i]).getAddress()))
+                                return true;
+                        }
+                    }
+                }
+            } catch (UnknownHostException e) {
+                log.warn("Host lookup failure", e);
+            }
+
+            return false;
+        }
+
+        protected void connectLocal(String hostOrIP, int port, final IRequestCallback callback ) {
+            channel.setReadable(false);
+            ClientBootstrap clientBootstrap = new ClientBootstrap(NIOBackend.INSTANCE.getClientSocketFactory());
+
+            final String localId = "local_" + localIdCounter.incrementAndGet();
+            clientBootstrap.getPipeline().addLast("handler", new UpStreamHandler(channel, localId));
+
+            ChannelFuture outboundClientFuture = clientBootstrap.connect(new InetSocketAddress(hostOrIP, port));
+            outboundClientFuture.addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                    if (channelFuture.isSuccess()) {
+                        channel.setReadable(true);
+                        upChannel = channelFuture.getChannel();
+                        connectionId = localId;
+                        log.info("Open local " + connectionId);
+                        callback.onSuccess(new CompressedPacket(new byte[0], false));
+                    } else {
+                        callback.onFailure(500, "Local connect failed");
+                    }
+                }
+            });
         }
     }
 }

@@ -52,13 +52,7 @@ public class NIOGenericServer extends NIOServerBase {
             ChannelBuffer data = (ChannelBuffer) e.getMessage();
 
             if (channel != null) {
-                sendRequest(data, new IRequestCallback() {
-                    public void onSuccess(CompressedPacket result) {
-                    }
-
-                    public void onFailure(int statusCode, String statusText) {
-                    }
-                });
+                sendRequest(data, null);
             } else
                 log.error("Dont know anything about  " + e.getChannel());
         }
