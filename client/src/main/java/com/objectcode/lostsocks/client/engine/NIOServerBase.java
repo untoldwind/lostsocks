@@ -150,7 +150,7 @@ public abstract class NIOServerBase {
                 if (channel.isWritable())
                     channel.write(buffer);
                 if (!result.isEndOfCommunication()) {
-                    log.info("Get package, reconnect");
+                    log.debug("Get package, reconnect");
                     startDownPoll();
                 } else if (channel.isWritable()) {
                     downOpen.set(false);
@@ -165,7 +165,7 @@ public abstract class NIOServerBase {
         @Override
         public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
             if ( upChannel != null ) {
-                log.info("Local close " + connectionId);
+                log.debug("Local close " + connectionId);
                 upChannel.close();
                 return;
             }
@@ -208,8 +208,6 @@ public abstract class NIOServerBase {
         }
 
         protected void sendConnectionRequest(String destinationUri, final IRequestCallback callback) {
-            log.info("<CLIENT> An application asked a connection to " + destinationUri);
-
             CompressedPacket connectionCreate = new CompressedPacket(destinationUri + ":" + configuration.getTimeout() + ":stream", false);
             try {
                 log.info("<CLIENT> SERVER, create a connection to " + destinationUri);
@@ -243,8 +241,6 @@ public abstract class NIOServerBase {
                         public void onSuccess(CompressedPacket result) {
                             if (result.isEndOfCommunication()) {
                                 log.info("<SERVER> Remote server closed the connection : " + connectionId);
-
-                                log.info("<CLIENT> Disconnecting application (regular)");
                                 channel.close();
                             }
                             if (callback != null)
