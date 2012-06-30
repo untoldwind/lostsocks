@@ -2,8 +2,8 @@ package com.objectcode.lostsocks.client;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.core.util.StatusPrinter;
-import com.objectcode.lostsocks.client.config.IConfiguration;
-import com.objectcode.lostsocks.client.config.PropertyFileConfiguration;
+import com.objectcode.lostsocks.client.config.IConfigurationHolder;
+import com.objectcode.lostsocks.client.config.PropertyFileConfigurationHolder;
 import com.objectcode.lostsocks.client.swing.MainFrame;
 import org.slf4j.LoggerFactory;
 
@@ -23,13 +23,13 @@ public class Main {
 
         File configurationFile = new File(configurationDir, "config.properties");
 
-        IConfiguration configuration = new PropertyFileConfiguration(configurationFile);
+        IConfigurationHolder configurationHolder = new PropertyFileConfigurationHolder(configurationFile);
 
         if (configurationFile.exists()) {
-            configuration.load();
+            configurationHolder.load();
         }
 
-        MainFrame mainFrame = new MainFrame(configuration);
+        MainFrame mainFrame = new MainFrame(configurationHolder);
 
         mainFrame.setVisible(true);
     }

@@ -1,17 +1,9 @@
 package com.objectcode.lostsocks.client.config;
 
-import com.ning.http.client.AsyncHttpClient;
-import com.ning.http.client.AsyncHttpClientConfig;
-import com.ning.http.client.ProxyServer;
-import com.ning.http.client.Realm;
-import com.ning.http.client.providers.netty.NettyAsyncHttpProvider;
 import com.objectcode.lostsocks.client.utils.PropertiesHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.URL;
@@ -20,418 +12,323 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 
-public class PropertyFileConfiguration implements IConfiguration {
+public class PropertyFileConfiguration extends BasicConfiguration {
     private static final Logger log = LoggerFactory.getLogger(PropertyFileConfiguration.class);
 
-    // Socks server settings
-    private int m_port = 1080;
+    private String prefix;
 
-    private boolean m_listenOnlyLocalhost = true;
+    // Socks server settings
+    private int port = 1080;
+
+    private boolean listenOnlyLocalhost = true;
 
     // Tunneling settings
-    protected String m_urlString = null;
+    protected String urlString = null;
 
-    protected URL m_url = null;
+    protected URL url = null;
 
-    private String m_user = null;
+    private String user = null;
 
-    private String m_password = null;
+    private String password = null;
 
     // Socks via HTTP Client settings
-    private int m_delay = 20;
+    private int delay = 20;
 
     // 20ms
-    private boolean m_requestOnlyIfClientActivity = false;
+    private boolean requestOnlyIfClientActivity = false;
 
-    private long m_dontTryToMinimizeTrafficBefore = 10000;
+    private long dontTryToMinimizeTrafficBefore = 10000;
 
     // 10s
-    private long m_forceRequestAfter = 3000;
+    private long forceRequestAfter = 3000;
     // 3s
 
     // Resistance to HTTP request drops
-    private int m_maxRetries = 0;
+    private int maxRetries = 0;
 
-    private long m_delayBetweenTries = 3000;
+    private long delayBetweenTries = 3000;
 
     // Tunneling
-    Tunnel[] m_tunnels = new Tunnel[0];
+    Tunnel[] tunnels = new Tunnel[0];
 
     // Socks via HTTP Server settings
-    private long m_timeout = 0;
+    private long timeout = 0;
 
     // Proxy settings
-    private boolean m_useProxy = false;
+    private boolean useProxy = false;
 
-    private String m_proxyHost = null;
+    private String proxyHost = null;
 
-    private String m_proxyPort = null;
+    private String proxyPort = null;
 
-    private boolean m_proxyNeedsAuthentication = false;
+    private boolean proxyNeedsAuthentication = false;
 
-    private String m_proxyUser = null;
+    private String proxyUser = null;
 
-    private String m_proxyPassword = null;
+    private String proxyPassword = null;
 
-    private File m_configurationFile;
+    private boolean configurationChanged = false;
 
-    private boolean m_configurationChanged = false;
-
-    private AsyncHttpClient m_httpClient;
-
-    private List<Network> m_localNetworks;
-
-    /**
-     * Constructor for the PropertyFileConfiguration object
-     *
-     * @param configurationFile Description of the Parameter
-     */
-    public PropertyFileConfiguration(File configurationFile) {
-
-        m_configurationFile = configurationFile;
-
+    public PropertyFileConfiguration(String prefix) {
+        this.prefix = prefix;
     }
 
-    /**
-     * @param password The password to set.
-     */
+    @Override
     public void setPassword(String password) {
-
-        if (m_password == null || !m_password.equals(password)) {
-            m_configurationChanged = true;
-            m_httpClient = null;
+        if (this.password == null || !this.password.equals(password)) {
+            configurationChanged = true;
+            httpClient = null;
         }
-        m_password = password;
+        this.password = password;
     }
 
-    /**
-     * @param url The url to set.
-     */
+    @Override
     public void setUrlString(String url) {
-
-        if (m_urlString == null || !m_urlString.equals(url)) {
-            m_configurationChanged = true;
+        if (urlString == null || !urlString.equals(url)) {
+            configurationChanged = true;
         }
-        m_urlString = url;
+        urlString = url;
         try {
-            if (m_urlString != null) {
-                if (m_urlString.endsWith("/"))
-                    m_urlString = m_urlString.substring(0, m_urlString.length() - 1);
-                m_url = new URL(m_urlString);
+            if (urlString != null) {
+                if (urlString.endsWith("/"))
+                    urlString = urlString.substring(0, urlString.length() - 1);
+                this.url = new URL(urlString);
             } else {
-                m_url = null;
+                this.url = null;
             }
         } catch (Exception e) {
             log.error("Exception", e);
         }
     }
 
-    /**
-     * @param user The user to set.
-     */
+    @Override
     public void setUser(String user) {
 
-        if (m_user == null || !m_user.equals(user)) {
-            m_configurationChanged = true;
-            m_httpClient = null;
+        if (this.user == null || !this.user.equals(user)) {
+            configurationChanged = true;
+            httpClient = null;
         }
-        m_user = user;
+        this.user = user;
     }
 
-    /**
-     * @param tunnels The tunnels to set.
-     */
+    @Override
     public void setTunnels(Tunnel[] tunnels) {
+        this.tunnels = tunnels;
 
-        m_tunnels = tunnels;
-
-        m_configurationChanged = true;
+        configurationChanged = true;
     }
 
-    /**
-     * @return Returns the delay.
-     */
+    @Override
     public int getDelay() {
-
-        return m_delay;
+        return delay;
     }
 
-    /**
-     * @return Returns the delayBetweenTries.
-     */
+    @Override
     public long getDelayBetweenTries() {
-
-        return m_delayBetweenTries;
+        return delayBetweenTries;
     }
 
-    /**
-     * @return Returns the dontTryToMinimizeTrafficBefore.
-     */
+    @Override
     public long getDontTryToMinimizeTrafficBefore() {
-
-        return m_dontTryToMinimizeTrafficBefore;
+        return dontTryToMinimizeTrafficBefore;
     }
 
-    /**
-     * @return Returns the forceRequestAfter.
-     */
+    @Override
     public long getForceRequestAfter() {
-
-        return m_forceRequestAfter;
+        return forceRequestAfter;
     }
 
-    /**
-     * @return Returns the listenOnlyLocalhost.
-     */
+    @Override
     public boolean isListenOnlyLocalhost() {
-
-        return m_listenOnlyLocalhost;
+        return listenOnlyLocalhost;
     }
 
-    /**
-     * @return Returns the maxRetries.
-     */
+    @Override
     public int getMaxRetries() {
-
-        return m_maxRetries;
+        return maxRetries;
     }
 
-    /**
-     * @return Returns the password.
-     */
+    @Override
     public String getPassword() {
-
-        return m_password;
+        return password;
     }
 
-    /**
-     * @return Returns the port.
-     */
+    @Override
     public int getSocksPort() {
-
-        return m_port;
+        return port;
     }
 
-    /**
-     * @return Returns the proxyHost.
-     */
+    @Override
     public String getProxyHost() {
-
-        return m_proxyHost;
+        return proxyHost;
     }
 
-    /**
-     * @return Returns the proxyNeedsAuthentication.
-     */
+    @Override
     public boolean isProxyNeedsAuthentication() {
-
-        return m_proxyNeedsAuthentication;
+        return proxyNeedsAuthentication;
     }
 
-    /**
-     * @return Returns the proxyPassword.
-     */
+    @Override
     public String getProxyPassword() {
-
-        return m_proxyPassword;
+        return proxyPassword;
     }
 
-    /**
-     * @return Returns the proxyPort.
-     */
+    @Override
     public String getProxyPort() {
-
-        return m_proxyPort;
+        return proxyPort;
     }
 
-    /**
-     * @return Returns the proxyUser.
-     */
+    @Override
     public String getProxyUser() {
-
-        return m_proxyUser;
+        return proxyUser;
     }
 
-    /**
-     * @return Returns the requestOnlyIfClientActivity.
-     */
+    @Override
     public boolean isRequestOnlyIfClientActivity() {
-
-        return m_requestOnlyIfClientActivity;
+        return requestOnlyIfClientActivity;
     }
 
-    /**
-     * @return Returns the timeout.
-     */
+    @Override
     public long getTimeout() {
-
-        return m_timeout;
+        return timeout;
     }
 
-    /**
-     * @return Returns the tunnels.
-     */
+    @Override
     public Tunnel[] getTunnels() {
-
-        return m_tunnels;
+        return tunnels;
     }
 
-    /**
-     * @return Returns the url.
-     */
+    @Override
     public String getUrlString() {
-
-        return m_urlString;
+        return urlString;
     }
 
-    /**
-     * @return Returns the useProxy.
-     */
+    @Override
     public boolean isUseProxy() {
-
-        return m_useProxy;
+        return useProxy;
     }
 
-    /**
-     * @return Returns the user.
-     */
+    @Override
     public String getUser() {
-
-        return m_user;
+        return user;
     }
 
-    /**
-     * @return Returns the url.
-     */
+    @Override
     public URL getUrl() {
-
-        return m_url;
+        return url;
     }
 
-    /**
-     * @param proxyHost The proxyHost to set.
-     */
+    @Override
     public void setProxyHost(String proxyHost) {
-
-        if (m_proxyHost == null || !m_proxyHost.equals(proxyHost)) {
-            m_configurationChanged = true;
-            m_httpClient = null;
+        if (this.proxyHost == null || !this.proxyHost.equals(proxyHost)) {
+            configurationChanged = true;
+            httpClient = null;
         }
-        m_proxyHost = proxyHost;
+        this.proxyHost = proxyHost;
     }
 
-    /**
-     * @param proxyNeedsAuthentication The proxyNeedsAuthentication to set.
-     */
+    @Override
     public void setProxyNeedsAuthentication(boolean proxyNeedsAuthentication) {
 
-        if (m_proxyNeedsAuthentication != proxyNeedsAuthentication) {
-            m_configurationChanged = true;
-            m_httpClient = null;
+        if (this.proxyNeedsAuthentication != proxyNeedsAuthentication) {
+            configurationChanged = true;
+            httpClient = null;
         }
-        m_proxyNeedsAuthentication = proxyNeedsAuthentication;
+        this.proxyNeedsAuthentication = proxyNeedsAuthentication;
     }
 
-    /**
-     * @param proxyPassword The proxyPassword to set.
-     */
+    @Override
     public void setProxyPassword(String proxyPassword) {
-
-        if (m_proxyPassword == null || !m_proxyPassword.equals(proxyPassword)) {
-            m_configurationChanged = true;
-            m_httpClient = null;
+        if (this.proxyPassword == null || !this.proxyPassword.equals(proxyPassword)) {
+            configurationChanged = true;
+            httpClient = null;
         }
-        m_proxyPassword = proxyPassword != null && proxyPassword.length() > 0 ? proxyPassword : null;
+        this.proxyPassword = proxyPassword != null && proxyPassword.length() > 0 ? proxyPassword : null;
     }
 
-    /**
-     * @param proxyPort The proxyPort to set.
-     */
+    @Override
     public void setProxyPort(String proxyPort) {
-
-        if (m_proxyPort == null || !m_proxyPort.equals(proxyPort)) {
-            m_configurationChanged = true;
-            m_httpClient = null;
+        if (this.proxyPort == null || !this.proxyPort.equals(proxyPort)) {
+            configurationChanged = true;
+            httpClient = null;
         }
-        m_proxyPort = proxyPort;
+        this.proxyPort = proxyPort;
     }
 
-    /**
-     * @param proxyUser The proxyUser to set.
-     */
+    @Override
     public void setProxyUser(String proxyUser) {
-
-        if (m_proxyUser == null || !m_proxyUser.equals(proxyUser)) {
-            m_configurationChanged = true;
-            m_httpClient = null;
+        if (this.proxyUser == null || !this.proxyUser.equals(proxyUser)) {
+            configurationChanged = true;
+            httpClient = null;
         }
-        m_proxyUser = proxyUser != null && proxyUser.length() > 0 ? proxyUser : null;
+        this.proxyUser = proxyUser != null && proxyUser.length() > 0 ? proxyUser : null;
     }
 
-    /**
-     * @param useProxy The useProxy to set.
-     */
+    @Override
     public void setUseProxy(boolean useProxy) {
-
-        if (m_useProxy != useProxy) {
-            m_configurationChanged = true;
-            m_httpClient = null;
+        if (this.useProxy != useProxy) {
+            configurationChanged = true;
+            httpClient = null;
         }
-        m_useProxy = useProxy;
+        this.useProxy = useProxy;
     }
 
-    public AsyncHttpClient createHttpClient() {
+    public boolean isConfigurationChanged() {
+        return configurationChanged;
+    }
 
-        if (m_httpClient == null) {
-            synchronized (this) {
-                AsyncHttpClientConfig.Builder configBuilder = new AsyncHttpClientConfig.Builder();
+    public void setConfigurationChanged(boolean configurationChanged) {
+        this.configurationChanged = configurationChanged;
+    }
 
-                if (m_useProxy) {
-                    ProxyServer proxyServer = new ProxyServer(m_proxyHost, Integer.parseInt(m_proxyPort), m_proxyUser, m_proxyPassword);
+    protected void readProperties(Properties properties) {
+        // Socks server access configuration
+        urlString = PropertiesHelper.getString(properties, "socks.http.servlet.url", null);
+        try {
+            url = new URL(urlString);
+        } catch (Exception e) {
+            log.error("Exception", e);
+        }
+        port = PropertiesHelper.getInt(properties, "socks.server.port", port);
 
-                    configBuilder = configBuilder.setProxyServer(proxyServer);
-                }
-                configBuilder.setMaxRequestRetry(3);
-                configBuilder.setAllowPoolingConnection(true);
-                configBuilder.setAllowSslConnectionPool(true);
-                NettyAsyncHttpProvider provider = new NettyAsyncHttpProvider(configBuilder.build());
-                m_httpClient = new AsyncHttpClient(provider, configBuilder.build());
-            }
+        listenOnlyLocalhost =
+                PropertiesHelper.getBoolean(properties, "socks.listen.localhost", listenOnlyLocalhost);
+        user = PropertiesHelper.getString(properties, "socks.httpserver.user", user);
+        password = PasswordEncoder
+                .decodePassword(PropertiesHelper.getString(properties, "socks.httpserver.password", password));
+
+        delay = PropertiesHelper.getInt(properties, "socks.delay", delay);
+        requestOnlyIfClientActivity = PropertiesHelper
+                .getBoolean(properties, "socks.requestonlyifclientactivity", requestOnlyIfClientActivity);
+        dontTryToMinimizeTrafficBefore = PropertiesHelper
+                .getLong(properties, "socks.donttrytominimizetrafficbefore", dontTryToMinimizeTrafficBefore);
+        forceRequestAfter = PropertiesHelper.getLong(properties, "socks.forcerequestafter", forceRequestAfter);
+
+        maxRetries = PropertiesHelper.getInt(properties, "socks.maxretries", maxRetries);
+        delayBetweenTries = PropertiesHelper.getLong(properties, "socks.delaybetweenretries", delayBetweenTries);
+
+        timeout = PropertiesHelper.getLong(properties, "socks.httpserver.timeout", timeout);
+
+        // Tunneling settings
+        String[] sActivePorts = PropertiesHelper.getStrings(properties, "tunnel.ports.active", new String[0]);
+        tunnels = new Tunnel[sActivePorts.length];
+        for (int i = 0; i < sActivePorts.length; i++) {
+            int localPort = Integer.parseInt(sActivePorts[i]);
+            String destinationUri = PropertiesHelper.getString(properties, "tunnel.localport." + localPort, null);
+            tunnels[i] = new Tunnel(localPort, destinationUri);
         }
 
-        return m_httpClient;
-    }
-
-    @Override
-    public Realm getRealm() {
-        Realm.RealmBuilder builder = new Realm.RealmBuilder();
-        builder.setScheme(Realm.AuthScheme.BASIC);
-        builder.setPrincipal(m_user);
-        builder.setPassword(m_password);
-        builder.setUsePreemptiveAuth(true);
-
-        return builder.build();
-    }
-
-    @Override
-    public List<Network> getLocalNetworks() {
-        return m_localNetworks;
-    }
-
-    /**
-     * Description of the Method
-     */
-    public void load() {
+        // Proxy settings
+        useProxy = PropertiesHelper.getBoolean(properties, "socks.proxy", useProxy);
+        proxyHost = PropertiesHelper.getString(properties, "socks.proxy.host", proxyHost);
+        proxyPort = PropertiesHelper.getString(properties, "socks.proxy.port", proxyPort);
+        proxyNeedsAuthentication =
+                PropertiesHelper.getBoolean(properties, "socks.proxy.authentication", proxyNeedsAuthentication);
+        proxyUser = PropertiesHelper.getString(properties, "socks.proxy.user", proxyUser);
+        proxyPassword = PasswordEncoder
+                .decodePassword(PropertiesHelper.getString(properties, "socks.proxy.password", proxyPassword));
 
         try {
-            Properties properties = new Properties();
-
-            properties.load(new FileInputStream(m_configurationFile));
-
-            readProperties(properties);
-
-            m_configurationChanged = false;
-
             List<Network> localNetworks = new ArrayList<Network>();
             Enumeration<NetworkInterface> it = NetworkInterface.getNetworkInterfaces();
             while (it.hasMoreElements()) {
@@ -442,122 +339,44 @@ public class PropertyFileConfiguration implements IConfiguration {
                     }
                 }
             }
-            m_localNetworks = localNetworks;
+            this.localNetworks = localNetworks;
         } catch (Exception e) {
             log.error("Exception", e);
         }
     }
 
-    /**
-     * Description of the Method
-     *
-     * @param properties Description of the Parameter
-     */
-    protected void readProperties(Properties properties) {
-        // Socks server access configuration
-        m_urlString = PropertiesHelper.getString(properties, "socks.http.servlet.url", null);
-        try {
-            m_url = new URL(m_urlString);
-        } catch (Exception e) {
-            log.error("Exception", e);
-        }
-        m_port = PropertiesHelper.getInt(properties, "socks.server.port", m_port);
 
-        m_listenOnlyLocalhost =
-                PropertiesHelper.getBoolean(properties, "socks.listen.localhost", m_listenOnlyLocalhost);
-        m_user = PropertiesHelper.getString(properties, "socks.httpserver.user", m_user);
-        m_password = PasswordEncoder
-                .decodePassword(PropertiesHelper.getString(properties, "socks.httpserver.password", m_password));
-
-        m_delay = PropertiesHelper.getInt(properties, "socks.delay", m_delay);
-        m_requestOnlyIfClientActivity = PropertiesHelper
-                .getBoolean(properties, "socks.requestonlyifclientactivity", m_requestOnlyIfClientActivity);
-        m_dontTryToMinimizeTrafficBefore = PropertiesHelper
-                .getLong(properties, "socks.donttrytominimizetrafficbefore", m_dontTryToMinimizeTrafficBefore);
-        m_forceRequestAfter = PropertiesHelper.getLong(properties, "socks.forcerequestafter", m_forceRequestAfter);
-
-        m_maxRetries = PropertiesHelper.getInt(properties, "socks.maxretries", m_maxRetries);
-        m_delayBetweenTries = PropertiesHelper.getLong(properties, "socks.delaybetweenretries", m_delayBetweenTries);
-
-        m_timeout = PropertiesHelper.getLong(properties, "socks.httpserver.timeout", m_timeout);
-
-        // Tunneling settings
-        String[] sActivePorts = PropertiesHelper.getStrings(properties, "tunnel.ports.active", new String[0]);
-        m_tunnels = new Tunnel[sActivePorts.length];
-        for (int i = 0; i < sActivePorts.length; i++) {
-            int localPort = Integer.parseInt(sActivePorts[i]);
-            String destinationUri = PropertiesHelper.getString(properties, "tunnel.localport." + localPort, null);
-            m_tunnels[i] = new Tunnel(localPort, destinationUri);
-        }
-
-        // Proxy settings
-        m_useProxy = PropertiesHelper.getBoolean(properties, "socks.proxy", m_useProxy);
-        m_proxyHost = PropertiesHelper.getString(properties, "socks.proxy.host", m_proxyHost);
-        m_proxyPort = PropertiesHelper.getString(properties, "socks.proxy.port", m_proxyPort);
-        m_proxyNeedsAuthentication =
-                PropertiesHelper.getBoolean(properties, "socks.proxy.authentication", m_proxyNeedsAuthentication);
-        m_proxyUser = PropertiesHelper.getString(properties, "socks.proxy.user", m_proxyUser);
-        m_proxyPassword = PasswordEncoder
-                .decodePassword(PropertiesHelper.getString(properties, "socks.proxy.password", m_proxyPassword));
-    }
-
-    /**
-     * Description of the Method
-     */
-    public void save() {
-
-        if (!m_configurationChanged) {
-            return;
-        }
-
-        Properties properties = new Properties();
-
-        writeProperties(properties);
-
-        try {
-            properties.store(new FileOutputStream(m_configurationFile), "Sock to HTTP");
-        } catch (Exception e) {
-            log.error("Exception", e);
-        }
-        m_configurationChanged = false;
-    }
-
-    /**
-     * Description of the Method
-     *
-     * @param properties Description of the Parameter
-     */
     protected void writeProperties(Properties properties) {
 
-        PropertiesHelper.setString(properties, "socks.http.servlet.url", m_urlString);
-        properties.setProperty("socks.server.port", Integer.toString(m_port));
-        properties.setProperty("socks.listen.localhost", Boolean.toString(m_listenOnlyLocalhost));
-        PropertiesHelper.setString(properties, "socks.httpserver.user", m_user);
-        PropertiesHelper.setString(properties, "socks.httpserver.password", PasswordEncoder.encodePassword(m_password));
-        properties.setProperty("socks.delay", Integer.toString(m_delay));
-        properties.setProperty("socks.requestonlyifclientactivity", Boolean.toString(m_requestOnlyIfClientActivity));
-        properties.setProperty("socks.donttrytominimizetrafficbefore", Long.toString(m_dontTryToMinimizeTrafficBefore));
-        properties.setProperty("socks.forcerequestafter", Long.toString(m_forceRequestAfter));
-        properties.setProperty("socks.maxretries", Long.toString(m_maxRetries));
-        properties.setProperty("socks.delaybetweenretries", Long.toString(m_delayBetweenTries));
+        PropertiesHelper.setString(properties, "socks.http.servlet.url", urlString);
+        properties.setProperty("socks.server.port", Integer.toString(port));
+        properties.setProperty("socks.listen.localhost", Boolean.toString(listenOnlyLocalhost));
+        PropertiesHelper.setString(properties, "socks.httpserver.user", user);
+        PropertiesHelper.setString(properties, "socks.httpserver.password", PasswordEncoder.encodePassword(password));
+        properties.setProperty("socks.delay", Integer.toString(delay));
+        properties.setProperty("socks.requestonlyifclientactivity", Boolean.toString(requestOnlyIfClientActivity));
+        properties.setProperty("socks.donttrytominimizetrafficbefore", Long.toString(dontTryToMinimizeTrafficBefore));
+        properties.setProperty("socks.forcerequestafter", Long.toString(forceRequestAfter));
+        properties.setProperty("socks.maxretries", Long.toString(maxRetries));
+        properties.setProperty("socks.delaybetweenretries", Long.toString(delayBetweenTries));
 
         StringBuffer sActivePorts = new StringBuffer();
         int i;
 
-        for (i = 0; i < m_tunnels.length; i++) {
+        for (i = 0; i < tunnels.length; i++) {
             if (i > 0) {
                 sActivePorts.append(",");
             }
-            sActivePorts.append(m_tunnels[i].getLocalPort());
-            properties.setProperty("tunnel.localport." + m_tunnels[i].getLocalPort(), m_tunnels[i].getDestinationUri());
+            sActivePorts.append(tunnels[i].getLocalPort());
+            properties.setProperty("tunnel.localport." + tunnels[i].getLocalPort(), tunnels[i].getDestinationUri());
         }
         properties.setProperty("tunnel.ports.active", sActivePorts.toString());
 
-        PropertiesHelper.setString(properties, "socks.proxy", Boolean.toString(m_useProxy));
-        PropertiesHelper.setString(properties, "socks.proxy.host", m_proxyHost);
-        PropertiesHelper.setString(properties, "socks.proxy.port", m_proxyPort);
-        properties.setProperty("socks.proxy.authentication", Boolean.toString(m_proxyNeedsAuthentication));
-        PropertiesHelper.setString(properties, "socks.proxy.user", m_proxyUser);
-        PropertiesHelper.setString(properties, "socks.proxy.password", PasswordEncoder.encodePassword(m_proxyPassword));
+        PropertiesHelper.setString(properties, "socks.proxy", Boolean.toString(useProxy));
+        PropertiesHelper.setString(properties, "socks.proxy.host", proxyHost);
+        PropertiesHelper.setString(properties, "socks.proxy.port", proxyPort);
+        properties.setProperty("socks.proxy.authentication", Boolean.toString(proxyNeedsAuthentication));
+        PropertiesHelper.setString(properties, "socks.proxy.user", proxyUser);
+        PropertiesHelper.setString(properties, "socks.proxy.password", PasswordEncoder.encodePassword(proxyPassword));
     }
 }

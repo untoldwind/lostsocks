@@ -10,7 +10,7 @@ import java.util.List;
  * @author junglas
  */
 public interface IConfiguration {
-    public int getDelay();
+    int getDelay();
 
     long getTimeout();
 
@@ -69,10 +69,6 @@ public interface IConfiguration {
     void setProxyUser(String proxyUser);
 
     void setUseProxy(boolean useProxy);
-
-    void load();
-
-    void save();
 
     AsyncHttpClient createHttpClient();
 
