@@ -64,7 +64,6 @@ public abstract class NIOServerBase {
 
         // Send the connection
         String id = null;
-        String serverInfoMessage = null;
         try {
             log.info("<CLIENT> Version check : " + Constants.APPLICATION_VERSION + " - URL : " + configuration.getUrlString());
             Future<CompressedPacket> future = sendHttpMessage(RequestType.VERSION_CHECK, null, versionCheck, null);

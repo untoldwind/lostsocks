@@ -22,16 +22,8 @@ public class Network {
         }
     }
 
-    public byte[] getNetwork() {
-        return network;
-    }
-    
     public String getNetworkString() {
         return b2s(network);
-    }
-
-    public byte[] getMask() {
-        return mask;
     }
 
     public String getMaskString() {
@@ -56,7 +48,7 @@ public class Network {
     }
 
     private String b2s(byte[] bytes) {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         if ( bytes.length == 4 ) {
             for (int i = 0; i < bytes.length; i++ ) {
                 if ( i > 0 )
