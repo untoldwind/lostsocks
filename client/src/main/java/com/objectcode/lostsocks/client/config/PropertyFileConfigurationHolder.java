@@ -7,9 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 public class PropertyFileConfigurationHolder implements IConfigurationHolder {
     private static final Logger log = LoggerFactory.getLogger(PropertyFileConfigurationHolder.class);
@@ -18,16 +16,18 @@ public class PropertyFileConfigurationHolder implements IConfigurationHolder {
 
     private String activeProfile;
 
-    private String[] profiles;
+    private List<String> profiles;
 
     private Map<String, PropertyFileConfiguration> configurations = new HashMap<String, PropertyFileConfiguration>();
+
+    private boolean configurationChanged;
 
     public PropertyFileConfigurationHolder(File configurationFile) {
         this.configurationFile = configurationFile;
     }
 
     @Override
-    public String[] getProfiles() {
+    public List<String> getProfiles() {
         return profiles;
     }
 
@@ -37,8 +37,27 @@ public class PropertyFileConfigurationHolder implements IConfigurationHolder {
     }
 
     @Override
+    public void setActiveProfile(String activeProfile) {
+        this.activeProfile = activeProfile;
+        this.configurationChanged = true;
+    }
+
+    @Override
     public IConfiguration getActiveConfiguration() {
         return configurations.get(activeProfile);
+    }
+
+    @Override
+    public IConfiguration addProfile(String profile) {
+        profiles.add(profile);
+
+        PropertyFileConfiguration configuration = new PropertyFileConfiguration(profile + ".");
+
+        configurations.put(profile, configuration);
+
+        this.configurationChanged = true;
+
+        return configuration;
     }
 
     @Override
@@ -49,7 +68,7 @@ public class PropertyFileConfigurationHolder implements IConfigurationHolder {
 
             properties.load(new FileInputStream(configurationFile));
 
-            profiles = PropertiesHelper.getStrings(properties, "profiles", new String[0]);
+            profiles = new ArrayList<String>(PropertiesHelper.getStringList(properties, "profiles", Collections.<String>emptyList()));
             activeProfile = PropertiesHelper.getString(properties, "activeProfile", null);
 
             PropertyFileConfiguration defaultConfiguration = new PropertyFileConfiguration("");
@@ -71,7 +90,6 @@ public class PropertyFileConfigurationHolder implements IConfigurationHolder {
 
     @Override
     public void save() {
-        boolean configurationChanged = false;
         for (PropertyFileConfiguration configuration : configurations.values()) {
             if (configuration.isConfigurationChanged()) {
                 configurationChanged = true;
@@ -82,9 +100,11 @@ public class PropertyFileConfigurationHolder implements IConfigurationHolder {
             return;
         }
 
+        configurationChanged = false;
+
         Properties properties = new Properties();
 
-        PropertiesHelper.setStrings(properties, "profiles", profiles);
+        PropertiesHelper.setStringList(properties, "profiles", profiles);
         PropertiesHelper.setString(properties, "activeProfile", activeProfile);
 
         for (PropertyFileConfiguration configuration : configurations.values()) {

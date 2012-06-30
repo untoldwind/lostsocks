@@ -3,32 +3,14 @@ package com.objectcode.lostsocks.client.config;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.Realm;
 
-import java.net.URL;
 import java.util.List;
 
-/**
- * @author junglas
- */
 public interface IConfiguration {
-    int getDelay();
-
     long getTimeout();
-
-    int getMaxRetries();
-
-    long getDelayBetweenTries();
 
     boolean isListenOnlyLocalhost();
 
-    long getForceRequestAfter();
-
-    long getDontTryToMinimizeTrafficBefore();
-
-    boolean isRequestOnlyIfClientActivity();
-
     int getSocksPort();
-
-    URL getUrl();
 
     String getUrlString();
 

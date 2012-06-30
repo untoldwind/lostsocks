@@ -1,5 +1,7 @@
 package com.objectcode.lostsocks.client.utils;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
@@ -50,13 +52,22 @@ public class PropertiesHelper {
         return values;
     }
 
+    public static List<String> getStringList(Properties properties, String key, List<String> def ) {
+        String value = properties.getProperty(key);
+
+        if ( value == null )
+            return def;
+
+        return Arrays.asList(value.split(","));
+    }
+
     public static boolean getBoolean(Properties properties, String key, boolean def) {
         String value = properties.getProperty(key);
 
         if (value == null)
             return def;
 
-        return Boolean.valueOf(value).booleanValue();
+        return Boolean.valueOf(value);
     }
 
     public static void setString(Properties properties, String key, String value) {
@@ -64,16 +75,17 @@ public class PropertiesHelper {
             properties.setProperty(key, value);
     }
 
-    public static void setStrings(Properties properties, String key, String[] values) {
-        if (values != null && values.length > 0 ) {
-            StringBuffer value = new StringBuffer();
+    public static void setStringList(Properties properties, String key, List<String> values) {
+        if (values != null && values.size() > 0 ) {
+            StringBuilder value = new StringBuilder();
 
-            for ( int i = 0; i < values.length; i++ ) {
+            for ( int i = 0; i < values.size(); i++ ) {
                 if ( i > 0 )
                     value.append(",");
-                value.append(values[i]);
+                value.append(values.get(i));
             }
             properties.setProperty(key, value.toString());
         }
+
     }
 }

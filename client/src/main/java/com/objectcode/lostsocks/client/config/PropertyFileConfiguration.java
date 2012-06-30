@@ -111,7 +111,6 @@ public class PropertyFileConfiguration extends BasicConfiguration {
         this.user = user;
     }
 
-    @Override
     public void setTunnels(Tunnel[] tunnels) {
         this.tunnels = tunnels;
 
@@ -119,33 +118,8 @@ public class PropertyFileConfiguration extends BasicConfiguration {
     }
 
     @Override
-    public int getDelay() {
-        return delay;
-    }
-
-    @Override
-    public long getDelayBetweenTries() {
-        return delayBetweenTries;
-    }
-
-    @Override
-    public long getDontTryToMinimizeTrafficBefore() {
-        return dontTryToMinimizeTrafficBefore;
-    }
-
-    @Override
-    public long getForceRequestAfter() {
-        return forceRequestAfter;
-    }
-
-    @Override
     public boolean isListenOnlyLocalhost() {
         return listenOnlyLocalhost;
-    }
-
-    @Override
-    public int getMaxRetries() {
-        return maxRetries;
     }
 
     @Override
@@ -184,11 +158,6 @@ public class PropertyFileConfiguration extends BasicConfiguration {
     }
 
     @Override
-    public boolean isRequestOnlyIfClientActivity() {
-        return requestOnlyIfClientActivity;
-    }
-
-    @Override
     public long getTimeout() {
         return timeout;
     }
@@ -211,11 +180,6 @@ public class PropertyFileConfiguration extends BasicConfiguration {
     @Override
     public String getUser() {
         return user;
-    }
-
-    @Override
-    public URL getUrl() {
-        return url;
     }
 
     @Override
@@ -283,50 +247,50 @@ public class PropertyFileConfiguration extends BasicConfiguration {
 
     protected void readProperties(Properties properties) {
         // Socks server access configuration
-        urlString = PropertiesHelper.getString(properties, "socks.http.servlet.url", null);
+        urlString = PropertiesHelper.getString(properties, prefix + "socks.http.servlet.url", null);
         try {
             url = new URL(urlString);
         } catch (Exception e) {
             log.error("Exception", e);
         }
-        port = PropertiesHelper.getInt(properties, "socks.server.port", port);
+        port = PropertiesHelper.getInt(properties, prefix + "socks.server.port", port);
 
         listenOnlyLocalhost =
-                PropertiesHelper.getBoolean(properties, "socks.listen.localhost", listenOnlyLocalhost);
-        user = PropertiesHelper.getString(properties, "socks.httpserver.user", user);
+                PropertiesHelper.getBoolean(properties, prefix + "socks.listen.localhost", listenOnlyLocalhost);
+        user = PropertiesHelper.getString(properties, prefix + "socks.httpserver.user", user);
         password = PasswordEncoder
-                .decodePassword(PropertiesHelper.getString(properties, "socks.httpserver.password", password));
+                .decodePassword(PropertiesHelper.getString(properties, prefix + "socks.httpserver.password", password));
 
-        delay = PropertiesHelper.getInt(properties, "socks.delay", delay);
+        delay = PropertiesHelper.getInt(properties, prefix + "socks.delay", delay);
         requestOnlyIfClientActivity = PropertiesHelper
-                .getBoolean(properties, "socks.requestonlyifclientactivity", requestOnlyIfClientActivity);
+                .getBoolean(properties, prefix + "socks.requestonlyifclientactivity", requestOnlyIfClientActivity);
         dontTryToMinimizeTrafficBefore = PropertiesHelper
-                .getLong(properties, "socks.donttrytominimizetrafficbefore", dontTryToMinimizeTrafficBefore);
-        forceRequestAfter = PropertiesHelper.getLong(properties, "socks.forcerequestafter", forceRequestAfter);
+                .getLong(properties, prefix + "socks.donttrytominimizetrafficbefore", dontTryToMinimizeTrafficBefore);
+        forceRequestAfter = PropertiesHelper.getLong(properties, prefix + "socks.forcerequestafter", forceRequestAfter);
 
-        maxRetries = PropertiesHelper.getInt(properties, "socks.maxretries", maxRetries);
-        delayBetweenTries = PropertiesHelper.getLong(properties, "socks.delaybetweenretries", delayBetweenTries);
+        maxRetries = PropertiesHelper.getInt(properties, "prefix + socks.maxretries", maxRetries);
+        delayBetweenTries = PropertiesHelper.getLong(properties, prefix + "socks.delaybetweenretries", delayBetweenTries);
 
-        timeout = PropertiesHelper.getLong(properties, "socks.httpserver.timeout", timeout);
+        timeout = PropertiesHelper.getLong(properties, prefix + "socks.httpserver.timeout", timeout);
 
         // Tunneling settings
-        String[] sActivePorts = PropertiesHelper.getStrings(properties, "tunnel.ports.active", new String[0]);
+        String[] sActivePorts = PropertiesHelper.getStrings(properties, prefix + "tunnel.ports.active", new String[0]);
         tunnels = new Tunnel[sActivePorts.length];
         for (int i = 0; i < sActivePorts.length; i++) {
             int localPort = Integer.parseInt(sActivePorts[i]);
-            String destinationUri = PropertiesHelper.getString(properties, "tunnel.localport." + localPort, null);
+            String destinationUri = PropertiesHelper.getString(properties, prefix + "tunnel.localport." + localPort, null);
             tunnels[i] = new Tunnel(localPort, destinationUri);
         }
 
         // Proxy settings
-        useProxy = PropertiesHelper.getBoolean(properties, "socks.proxy", useProxy);
-        proxyHost = PropertiesHelper.getString(properties, "socks.proxy.host", proxyHost);
-        proxyPort = PropertiesHelper.getString(properties, "socks.proxy.port", proxyPort);
+        useProxy = PropertiesHelper.getBoolean(properties, prefix + "socks.proxy", useProxy);
+        proxyHost = PropertiesHelper.getString(properties, prefix + "socks.proxy.host", proxyHost);
+        proxyPort = PropertiesHelper.getString(properties, prefix + "socks.proxy.port", proxyPort);
         proxyNeedsAuthentication =
-                PropertiesHelper.getBoolean(properties, "socks.proxy.authentication", proxyNeedsAuthentication);
-        proxyUser = PropertiesHelper.getString(properties, "socks.proxy.user", proxyUser);
+                PropertiesHelper.getBoolean(properties, prefix + "socks.proxy.authentication", proxyNeedsAuthentication);
+        proxyUser = PropertiesHelper.getString(properties, prefix + "socks.proxy.user", proxyUser);
         proxyPassword = PasswordEncoder
-                .decodePassword(PropertiesHelper.getString(properties, "socks.proxy.password", proxyPassword));
+                .decodePassword(PropertiesHelper.getString(properties, prefix + "socks.proxy.password", proxyPassword));
 
         try {
             List<Network> localNetworks = new ArrayList<Network>();
@@ -347,20 +311,19 @@ public class PropertyFileConfiguration extends BasicConfiguration {
 
 
     protected void writeProperties(Properties properties) {
+        PropertiesHelper.setString(properties, prefix + "socks.http.servlet.url", urlString);
+        properties.setProperty(prefix + "socks.server.port", Integer.toString(port));
+        properties.setProperty(prefix + "socks.listen.localhost", Boolean.toString(listenOnlyLocalhost));
+        PropertiesHelper.setString(properties, prefix + "socks.httpserver.user", user);
+        PropertiesHelper.setString(properties, prefix + "socks.httpserver.password", PasswordEncoder.encodePassword(password));
+        properties.setProperty(prefix + "socks.delay", Integer.toString(delay));
+        properties.setProperty(prefix + "socks.requestonlyifclientactivity", Boolean.toString(requestOnlyIfClientActivity));
+        properties.setProperty(prefix + "socks.donttrytominimizetrafficbefore", Long.toString(dontTryToMinimizeTrafficBefore));
+        properties.setProperty(prefix + "socks.forcerequestafter", Long.toString(forceRequestAfter));
+        properties.setProperty(prefix + "socks.maxretries", Long.toString(maxRetries));
+        properties.setProperty(prefix + "socks.delaybetweenretries", Long.toString(delayBetweenTries));
 
-        PropertiesHelper.setString(properties, "socks.http.servlet.url", urlString);
-        properties.setProperty("socks.server.port", Integer.toString(port));
-        properties.setProperty("socks.listen.localhost", Boolean.toString(listenOnlyLocalhost));
-        PropertiesHelper.setString(properties, "socks.httpserver.user", user);
-        PropertiesHelper.setString(properties, "socks.httpserver.password", PasswordEncoder.encodePassword(password));
-        properties.setProperty("socks.delay", Integer.toString(delay));
-        properties.setProperty("socks.requestonlyifclientactivity", Boolean.toString(requestOnlyIfClientActivity));
-        properties.setProperty("socks.donttrytominimizetrafficbefore", Long.toString(dontTryToMinimizeTrafficBefore));
-        properties.setProperty("socks.forcerequestafter", Long.toString(forceRequestAfter));
-        properties.setProperty("socks.maxretries", Long.toString(maxRetries));
-        properties.setProperty("socks.delaybetweenretries", Long.toString(delayBetweenTries));
-
-        StringBuffer sActivePorts = new StringBuffer();
+        StringBuilder sActivePorts = new StringBuilder();
         int i;
 
         for (i = 0; i < tunnels.length; i++) {
@@ -368,15 +331,15 @@ public class PropertyFileConfiguration extends BasicConfiguration {
                 sActivePorts.append(",");
             }
             sActivePorts.append(tunnels[i].getLocalPort());
-            properties.setProperty("tunnel.localport." + tunnels[i].getLocalPort(), tunnels[i].getDestinationUri());
+            properties.setProperty(prefix + "tunnel.localport." + tunnels[i].getLocalPort(), tunnels[i].getDestinationUri());
         }
-        properties.setProperty("tunnel.ports.active", sActivePorts.toString());
+        properties.setProperty(prefix + "tunnel.ports.active", sActivePorts.toString());
 
-        PropertiesHelper.setString(properties, "socks.proxy", Boolean.toString(useProxy));
-        PropertiesHelper.setString(properties, "socks.proxy.host", proxyHost);
-        PropertiesHelper.setString(properties, "socks.proxy.port", proxyPort);
-        properties.setProperty("socks.proxy.authentication", Boolean.toString(proxyNeedsAuthentication));
-        PropertiesHelper.setString(properties, "socks.proxy.user", proxyUser);
-        PropertiesHelper.setString(properties, "socks.proxy.password", PasswordEncoder.encodePassword(proxyPassword));
+        PropertiesHelper.setString(properties, prefix + "socks.proxy", Boolean.toString(useProxy));
+        PropertiesHelper.setString(properties, prefix + "socks.proxy.host", proxyHost);
+        PropertiesHelper.setString(properties, prefix + "socks.proxy.port", proxyPort);
+        properties.setProperty(prefix + "socks.proxy.authentication", Boolean.toString(proxyNeedsAuthentication));
+        PropertiesHelper.setString(properties, prefix + "socks.proxy.user", proxyUser);
+        PropertiesHelper.setString(properties, prefix + "socks.proxy.password", PasswordEncoder.encodePassword(proxyPassword));
     }
 }

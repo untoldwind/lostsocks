@@ -3,24 +3,17 @@ package com.objectcode.lostsocks.client.swing;
 import com.objectcode.lostsocks.client.config.IConfiguration;
 import com.objectcode.lostsocks.client.config.IConfigurationHolder;
 import com.objectcode.lostsocks.client.engine.NIOSocksServer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 
 public class MainFrame extends JFrame {
     private static final long serialVersionUID = -5199207523089060681L;
 
-    private static final Logger log = LoggerFactory.getLogger(MainFrame.class);
-
-    private JComboBox comboBoxField;
+    private JComboBox profileCombo;
     private JButton addProfileButton;
     private JTextField serverUrlField;
     private JTextField userField;
@@ -41,7 +34,6 @@ public class MainFrame extends JFrame {
     private IConfigurationHolder configurationHolder;
     private IConfiguration configuration;
 
-
     public MainFrame(IConfigurationHolder configurationHolder) {
         super("Socks to HTTP");
 
@@ -50,9 +42,10 @@ public class MainFrame extends JFrame {
         this.configurationHolder = configurationHolder;
         this.configuration = this.configurationHolder.getActiveConfiguration();
 
-        comboBoxField = new JComboBox();
-        comboBoxField.setEditable(true);
+        profileCombo = new JComboBox();
+        profileCombo.setEditable(true);
         addProfileButton = new JButton("Add Profile");
+        addProfileButton.addActionListener(new AddProfileListener());
         serverUrlField = new JTextField(this.configuration.getUrlString());
         userField = new JTextField(this.configuration.getUser());
         passwordField = new JPasswordField(this.configuration.getPassword());
@@ -80,37 +73,26 @@ public class MainFrame extends JFrame {
         tunnelTable = new JTable(tunnelTableModel);
         tunnelTable.getSelectionModel().addListSelectionListener(new TunnelTableListener());
 
-        initComponents();
-
-        // Proxy on
-        if (configuration.isUseProxy()) {
-            // Logging
-            log.info("Using proxy " + configuration.getProxyHost() + ":" + configuration.getProxyPort());
-
-            // JDK 1.3 and below
-            System.getProperties().put("proxySet", "true");
-            System.getProperties().put("proxyHost", configuration.getProxyHost());
-            System.getProperties().put("proxyPort", configuration.getProxyPort());
-
-            // JDK 1.4
-            System.getProperties().put("http.proxyHost", configuration.getProxyHost());
-            System.getProperties().put("http.proxyPort", configuration.getProxyPort());
-        } else {
-            // JDK 1.3 and below
-            System.getProperties().remove("proxySet");
-            System.getProperties().remove("proxyHost");
-            System.getProperties().remove("proxyPort");
-
-            // JDK 1.4
-            System.getProperties().remove("http.proxyHost");
-            System.getProperties().remove("http.proxyPort");
+        profileCombo.addItem("<Default>");
+        for (String profile : configurationHolder.getProfiles()) {
+            profileCombo.addItem(profile);
         }
+        profileCombo.setSelectedItem(configurationHolder.getActiveProfile() != null ? configurationHolder.getActiveProfile() : "<Default>");
+        profileCombo.addActionListener(new SelectProfileListener());
+
+        updateFields();
+
+        initComponents();
     }
 
+    void updateFields() {
+        tunnelTableModel = new TunnelsTableModel(this.configuration.getTunnels());
+        tunnelTable.setModel(tunnelTableModel);
+        serverUrlField.setText(this.configuration.getUrlString());
+        userField.setText(this.configuration.getUser());
+        passwordField.setText(this.configuration.getPassword());
+    }
 
-    /**
-     * Description of the Method
-     */
     void updateConfiguration() {
         configuration.setUrlString(serverUrlField.getText());
         configuration.setUser(userField.getText());
@@ -120,9 +102,6 @@ public class MainFrame extends JFrame {
     }
 
 
-    /**
-     * Description of the Method
-     */
     protected void initComponents() {
         JPanel root = new JPanel(new GridBagLayout());
 
@@ -130,7 +109,7 @@ public class MainFrame extends JFrame {
 
         root.add(new JLabel("Profile:"),
                 new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
-        root.add(comboBoxField,
+        root.add(profileCombo,
                 new GridBagConstraints(1, 0, 1, 1, 1.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
         root.add(addProfileButton,
                 new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(2, 2, 2, 2), 0, 0));
@@ -184,11 +163,18 @@ public class MainFrame extends JFrame {
         pack();
     }
 
+    protected void switchConfiguration(IConfiguration configuration) {
+        this.configuration = configuration;
+
+        if (socksServer != null)
+            socksServer.stop();
+        stopSocksButton.setEnabled(false);
+        startSocksButton.setEnabled(true);
+        updateFields();
+    }
+
     public class StartSocksListener implements ActionListener {
-        /**
-         * @param e Description of the Parameter
-         * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-         */
+        @Override
         public void actionPerformed(ActionEvent e) {
             updateConfiguration();
 
@@ -206,10 +192,7 @@ public class MainFrame extends JFrame {
     }
 
     public class StopSocksListener implements ActionListener {
-        /**
-         * @param e Description of the Parameter
-         * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-         */
+        @Override
         public void actionPerformed(ActionEvent e) {
             socksServer.stop();
             stopSocksButton.setEnabled(false);
@@ -218,10 +201,7 @@ public class MainFrame extends JFrame {
     }
 
     public class AddTunnelListener implements ActionListener {
-        /**
-         * @param e Description of the Parameter
-         * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-         */
+        @Override
         public void actionPerformed(ActionEvent e) {
             TunnelDialog dialog = new TunnelDialog(MainFrame.this);
 
@@ -236,10 +216,7 @@ public class MainFrame extends JFrame {
     }
 
     public class RemoveTunnelListener implements ActionListener {
-        /**
-         * @param e Description of the Parameter
-         * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-         */
+        @Override
         public void actionPerformed(ActionEvent e) {
             int idx = tunnelTable.getSelectedRow();
 
@@ -252,10 +229,7 @@ public class MainFrame extends JFrame {
     }
 
     public class StartTunnelListener implements ActionListener {
-        /**
-         * @param e Description of the Parameter
-         * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-         */
+        @Override
         public void actionPerformed(ActionEvent e) {
             int idx = tunnelTable.getSelectedRow();
 
@@ -273,10 +247,7 @@ public class MainFrame extends JFrame {
     }
 
     public class StopTunnelListener implements ActionListener {
-        /**
-         * @param e Description of the Parameter
-         * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-         */
+        @Override
         public void actionPerformed(ActionEvent e) {
             int idx = tunnelTable.getSelectedRow();
 
@@ -294,11 +265,7 @@ public class MainFrame extends JFrame {
     }
 
     public class TunnelTableListener implements ListSelectionListener {
-
-        /**
-         * @param e Description of the Parameter
-         * @see javax.swing.event.ListSelectionListener#valueChanged(javax.swing.event.ListSelectionEvent)
-         */
+        @Override
         public void valueChanged(ListSelectionEvent e) {
             int idx = tunnelTable.getSelectedRow();
 
@@ -321,24 +288,16 @@ public class MainFrame extends JFrame {
     }
 
     public class HttpProxyListener implements ActionListener {
-
-        /**
-         * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-         */
+        @Override
         public void actionPerformed(ActionEvent e) {
             HttpProxyDialog dialog = new HttpProxyDialog(MainFrame.this, configurationHolder, configuration);
 
             dialog.setVisible(true);
         }
-
     }
 
     public class WindowCloseListener extends WindowAdapter {
-
-        /**
-         * @param e Description of the Parameter
-         * @see java.awt.event.WindowListener#windowClosing(java.awt.event.WindowEvent)
-         */
+        @Override
         public void windowClosing(WindowEvent e) {
             System.exit(0);
         }
@@ -350,6 +309,59 @@ public class MainFrame extends JFrame {
             LocalNetworksDialog dialog = new LocalNetworksDialog(MainFrame.this, configuration);
 
             dialog.setVisible(true);
+        }
+    }
+
+    private class AddProfileListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String profile = (String) profileCombo.getSelectedItem();
+
+            if (profile == null || "<Default>".equals(profile) || configurationHolder.getProfiles().contains(profile))
+                return;
+
+            IConfiguration newConfiguration = configurationHolder.addProfile(profile);
+
+            newConfiguration.setPassword(configuration.getPassword());
+            newConfiguration.setProxyHost(configuration.getProxyHost());
+            newConfiguration.setProxyNeedsAuthentication(configuration.isProxyNeedsAuthentication());
+            newConfiguration.setProxyPassword(configuration.getProxyPassword());
+            newConfiguration.setProxyPort(configuration.getProxyPort());
+            newConfiguration.setProxyUser(configuration.getProxyUser());
+            newConfiguration.setTunnels(configuration.getTunnels());
+            newConfiguration.setUrlString(configuration.getUrlString());
+            newConfiguration.setUseProxy(configuration.isUseProxy());
+            newConfiguration.setUser(configuration.getUser());
+
+            profileCombo.addItem(profile);
+
+            configurationHolder.save();
+
+            switchConfiguration(newConfiguration);
+        }
+    }
+
+    private class SelectProfileListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String profile = (String) profileCombo.getSelectedItem();
+
+            if (profile == null)
+                return;
+
+            if ("<Default>".equals(profile) && configurationHolder.getActiveProfile() != null) {
+                configurationHolder.setActiveProfile(null);
+
+                configurationHolder.save();
+
+                switchConfiguration(configurationHolder.getActiveConfiguration());
+            } else if (!profile.equals(configurationHolder.getActiveProfile()) && configurationHolder.getProfiles().contains(profile)) {
+                configurationHolder.setActiveProfile(profile);
+
+                configurationHolder.save();
+
+                switchConfiguration(configurationHolder.getActiveConfiguration());
+            }
         }
     }
 }

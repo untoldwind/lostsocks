@@ -1,11 +1,17 @@
 package com.objectcode.lostsocks.client.config;
 
+import java.util.List;
+
 public interface IConfigurationHolder {
-    String[] getProfiles();
+    List<String> getProfiles();
 
     String getActiveProfile();
 
+    void setActiveProfile(String activeProfile);
+
     IConfiguration getActiveConfiguration();
+
+    IConfiguration addProfile(String profile);
 
     void load();
 
