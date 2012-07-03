@@ -43,7 +43,7 @@ public abstract class NIOServerBase {
     public void start() {
         if (configuration.isListenOnlyLocalhost()) {
             try {
-                binding = bootstrap.bind(new InetSocketAddress(InetAddress.getLocalHost(), listenPort));
+                binding = bootstrap.bind(new InetSocketAddress(InetAddress.getByName("localhost"), listenPort));
             } catch (UnknownHostException e) {
                 log.error("Failed to bind to localhost", e);
             }
