@@ -27,6 +27,10 @@ public class PropertiesHelper {
         return Integer.parseInt(value);
     }
 
+    public static void setInt(Properties properties, String key, int value ) {
+        properties.setProperty(key, Integer.toString(value));
+    }
+
     public static String getString(Properties properties, String key, String def) {
         String value = properties.getProperty(key);
 

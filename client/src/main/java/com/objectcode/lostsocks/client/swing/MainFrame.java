@@ -306,7 +306,7 @@ public class MainFrame extends JFrame {
     private class LocalNetworksListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            LocalNetworksDialog dialog = new LocalNetworksDialog(MainFrame.this, configuration);
+            LocalNetworksDialog dialog = new LocalNetworksDialog(MainFrame.this, configurationHolder);
 
             dialog.setVisible(true);
         }

@@ -1,25 +1,25 @@
 package com.objectcode.lostsocks.client.swing;
 
-import com.objectcode.lostsocks.client.config.Network;
+import com.objectcode.lostsocks.client.config.IConfiguration;
+import com.objectcode.lostsocks.client.config.SimpleWildcard;
 
 import javax.swing.table.AbstractTableModel;
-import java.util.List;
 
 public class LocalNetworksTableModel extends AbstractTableModel {
-    private final List<Network> localNetworks;
+    IConfiguration configuration;
 
-    public LocalNetworksTableModel(List<Network> localNetworks) {
-        this.localNetworks = localNetworks;
+    public LocalNetworksTableModel(IConfiguration configuration) {
+        this.configuration = configuration;
     }
 
     @Override
     public int getRowCount() {
-        return localNetworks.size();
+        return configuration.getLocalNetworks().size();
     }
 
     @Override
     public int getColumnCount() {
-        return 2;
+        return 1;
     }
 
     @Override
@@ -28,25 +28,37 @@ public class LocalNetworksTableModel extends AbstractTableModel {
         switch ( column ) {
             case 0:
                 return "Network";
-            case 1:
-                return "Netmask";
         }
         return "";
     }
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
-        if ( rowIndex <0 || rowIndex >= localNetworks.size())
+        if ( rowIndex <0 || rowIndex >= configuration.getLocalNetworks().size())
             return null;
 
-        Network network = localNetworks.get(rowIndex);
+        SimpleWildcard network = configuration.getLocalNetworks().get(rowIndex);
 
         switch (columnIndex) {
             case 0:
-                return network.getNetworkString();
-            case 1:
-                return network.getMaskString();
+                return network.getWildcard();
         }
         return null;
+    }
+
+    public SimpleWildcard getRow(int rowIndex) {
+        return configuration.getLocalNetworks().get(rowIndex);
+    }
+
+    public void addRow(SimpleWildcard wildcard) {
+        configuration.addLocalNetwork(wildcard);
+
+        fireTableDataChanged();
+    }
+
+    public void removeRow(int rowIndex) {
+        configuration.removeLocalNetwork(rowIndex);
+
+        fireTableDataChanged();
     }
 }

@@ -56,5 +56,9 @@ public interface IConfiguration {
 
     Realm getRealm();
 
-    List<Network> getLocalNetworks();
+    List<SimpleWildcard> getLocalNetworks();
+
+    void addLocalNetwork(SimpleWildcard wildcard);
+
+    void removeLocalNetwork(int index);
 }

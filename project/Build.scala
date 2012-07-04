@@ -27,7 +27,9 @@ object ApplicationBuild extends Build {
         .exclude("org.jboss.netty", "netty"),
       "org.slf4j" % "slf4j-api" % "1.6.4",
       "ch.qos.logback" % "logback-core" % "1.0.0",
-      "ch.qos.logback" % "logback-classic" % "1.0.0"
+      "ch.qos.logback" % "logback-classic" % "1.0.0",
+      "com.novocode"                      %    "junit-interface"          %   "0.8"        %  "test",
+      "org.easytesting" % "fest-assert" % "1.4" % "test"
     ),
     crossPaths := false,
     excludedJars in assembly <<= (fullClasspath in assembly) map {

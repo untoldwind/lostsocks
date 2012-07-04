@@ -6,12 +6,15 @@ import com.ning.http.client.ProxyServer;
 import com.ning.http.client.Realm;
 import com.ning.http.client.providers.netty.NettyAsyncHttpProvider;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class BasicConfiguration implements IConfiguration {
     protected AsyncHttpClient httpClient;
 
-    protected List<Network> localNetworks;
+    protected List<SimpleWildcard> localNetworks = new ArrayList<SimpleWildcard>();
+
+    protected boolean configurationChanged = false;
 
     @Override
     public AsyncHttpClient createHttpClient() {
@@ -47,7 +50,21 @@ public abstract class BasicConfiguration implements IConfiguration {
     }
 
     @Override
-    public List<Network> getLocalNetworks() {
+    public List<SimpleWildcard> getLocalNetworks() {
         return localNetworks;
+    }
+
+    @Override
+    public void addLocalNetwork(SimpleWildcard wildcard) {
+        localNetworks.add(wildcard);
+
+        configurationChanged = true;
+    }
+
+    @Override
+    public void removeLocalNetwork(int index) {
+        localNetworks.remove(index);
+
+        configurationChanged = true;
     }
 }

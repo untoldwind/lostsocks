@@ -3,7 +3,7 @@ package com.objectcode.lostsocks.client.engine;
 import com.ning.http.client.*;
 import com.objectcode.lostsocks.client.Constants;
 import com.objectcode.lostsocks.client.config.IConfiguration;
-import com.objectcode.lostsocks.client.config.Network;
+import com.objectcode.lostsocks.client.config.SimpleWildcard;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -275,22 +275,13 @@ public abstract class NIOServerBase {
         }
 
         protected boolean isLocalNetwork(String hostOrIP) {
-            try {
-                InetAddress[] address = Inet4Address.getAllByName(hostOrIP);
+            log.info("Try connect to: " + hostOrIP);
 
-                for (Network localNetwork : configuration.getLocalNetworks()) {
-                    for (int i = 0; i < address.length; i++) {
-                        if (address[i] instanceof Inet4Address) {
-                            if (localNetwork.match(((Inet4Address) address[i]).getAddress()))
-                                return true;
-                        } else if (address[i] instanceof Inet6Address) {
-                            if (localNetwork.match(((Inet6Address) address[i]).getAddress()))
-                                return true;
-                        }
-                    }
+            for (SimpleWildcard wildcard : configuration.getLocalNetworks()) {
+                if ( wildcard.matches(hostOrIP)) {
+                    log.info("Is local");
+                    return true;
                 }
-            } catch (UnknownHostException e) {
-                log.warn("Host lookup failure", e);
             }
 
             return false;

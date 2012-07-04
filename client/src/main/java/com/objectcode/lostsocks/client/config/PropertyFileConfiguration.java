@@ -4,12 +4,7 @@ import com.objectcode.lostsocks.client.utils.PropertiesHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InterfaceAddress;
-import java.net.NetworkInterface;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
 import java.util.Properties;
 
 public class PropertyFileConfiguration extends BasicConfiguration {
@@ -66,8 +61,6 @@ public class PropertyFileConfiguration extends BasicConfiguration {
     private String proxyUser = null;
 
     private String proxyPassword = null;
-
-    private boolean configurationChanged = false;
 
     public PropertyFileConfiguration(String prefix) {
         this.prefix = prefix;
@@ -292,20 +285,14 @@ public class PropertyFileConfiguration extends BasicConfiguration {
         proxyPassword = PasswordEncoder
                 .decodePassword(PropertiesHelper.getString(properties, prefix + "socks.proxy.password", proxyPassword));
 
-        try {
-            List<Network> localNetworks = new ArrayList<Network>();
-            Enumeration<NetworkInterface> it = NetworkInterface.getNetworkInterfaces();
-            while (it.hasMoreElements()) {
-                NetworkInterface networkIf = it.nextElement();
-                for (InterfaceAddress ifAddress : networkIf.getInterfaceAddresses()) {
-                    if (!ifAddress.getAddress().isAnyLocalAddress() && !ifAddress.getAddress().isLoopbackAddress()) {
-                        localNetworks.add(new Network(ifAddress.getAddress(), ifAddress.getNetworkPrefixLength()));
-                    }
-                }
-            }
-            this.localNetworks = localNetworks;
-        } catch (Exception e) {
-            log.error("Exception", e);
+        int numLocalNetworks = PropertiesHelper.getInt(properties, prefix + "numLocalNetworks", 0);
+
+        localNetworks.clear();
+        for ( int i = 0; i < numLocalNetworks; i++ ) {
+            String wildcard = PropertiesHelper.getString(properties, prefix + "localNetwork." + i, null);
+
+            if ( wildcard != null )
+                localNetworks.add(new SimpleWildcard(wildcard));
         }
     }
 
@@ -341,5 +328,11 @@ public class PropertyFileConfiguration extends BasicConfiguration {
         properties.setProperty(prefix + "socks.proxy.authentication", Boolean.toString(proxyNeedsAuthentication));
         PropertiesHelper.setString(properties, prefix + "socks.proxy.user", proxyUser);
         PropertiesHelper.setString(properties, prefix + "socks.proxy.password", PasswordEncoder.encodePassword(proxyPassword));
+
+        PropertiesHelper.setInt(properties, prefix + "numLocalNetworks", localNetworks.size());
+
+        for ( i = 0; i < localNetworks.size(); i++ ) {
+            PropertiesHelper.setString(properties, prefix + "localNetwork." + i, localNetworks.get(i).getWildcard());
+        }
     }
 }
